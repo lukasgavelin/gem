@@ -2,8 +2,11 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Gemmets Resa — Handritat 2.5D-äventyr</title>
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet" />
@@ -22,7 +25,7 @@
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div class="hud-left">
-      <div class="paper-badge">
+      <div class="paper-badge desktop-only-badge">
         <span class="badge-label">SIDA</span>
         <span id="level-name" class="badge-value">1. Anteckningslinjer</span>
       </div>
@@ -34,16 +37,21 @@
         <span class="badge-label">FRAMSTEG</span>
         <span id="progress-pct" class="badge-value">0%</span>
       </div>
-      <div class="paper-badge">
+      <div class="paper-badge desktop-only-badge">
         <span class="badge-label">TID</span>
         <span id="run-timer" class="badge-value">0:00</span>
       </div>
     </div>
 
+    <div id="rotate-hint" class="rotate-hint">
+      <span>📱 Vänd gärna mobilen till liggande läge</span>
+      <button id="btn-dismiss-rotate" type="button" aria-label="Stäng">✕</button>
+    </div>
+
     <div class="hud-right">
-      <button id="btn-pause" class="paper-btn" title="Pausa (P / Esc)">⏸ Paus</button>
-      <button id="btn-restart" class="paper-btn" title="Starta om från början (Shift+R)">↺ Ny runda</button>
-      <button id="btn-mute" class="paper-btn" title="Ljud på/av (M)">🔊 Ljud</button>
+      <button id="btn-pause" class="paper-btn" title="Pausa (P / Esc)">⏸ Meny</button>
+      <button id="btn-restart" class="paper-btn desktop-only-btn" title="Starta om från början (Shift+R)">↺ Ny runda</button>
+      <button id="btn-mute" class="paper-btn desktop-only-btn" title="Ljud på/av (M)">🔊 Ljud</button>
     </div>
 
     <div class="controls-hint">
@@ -56,7 +64,7 @@
 
     <!-- Mobile / Touch controls (shown only on coarse pointers) -->
     <div id="touch-controls" class="touch-controls">
-      <div class="touch-group">
+      <div id="touch-dpad" class="touch-group">
         <button id="touch-left" class="touch-btn" aria-label="Vänster">◀</button>
         <button id="touch-right" class="touch-btn" aria-label="Höger">▶</button>
       </div>
@@ -99,6 +107,10 @@
       <p class="description">Ta en andningspaus innan du hoppar vidare.</p>
       <div class="pause-actions">
         <button id="btn-resume" class="primary-btn">Fortsätt</button>
+        <div class="pause-row">
+          <button id="btn-mute-pause" class="paper-btn" type="button">🔊 Ljud</button>
+          <button id="btn-fullscreen" class="paper-btn" type="button">⛶ Helskärm</button>
+        </div>
         <button id="btn-checkpoint" class="paper-btn">↺ Till checkpoint (R)</button>
         <button id="btn-full-restart" class="paper-btn">Börja om från början</button>
         <button id="btn-clear-cache-pause" class="link-btn" type="button">🔄 Rensa cache &amp; ladda om</button>

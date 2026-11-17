@@ -1,0 +1,9 @@
+{
+  "name": "Gemmets Resa",
+  "short_name": "Gemmet",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b"
+}

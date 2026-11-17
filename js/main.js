@@ -4,9 +4,13 @@ import { BookWorld } from './book.js';
 import { PaperclipPlayer } from './player.js';
 import { sound } from './audio.js';
 
+const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
+const maxDpr = isMobile ? 1.5 : 2;
+const shadowRes = isMobile ? 1024 : 2048;
+
 const canvas = document.getElementById('game-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -33,7 +37,7 @@ scene.add(hemiLight);
 const dirLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
 dirLight.position.set(8, 10, 12);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.mapSize.set(shadowRes, shadowRes);
 dirLight.shadow.camera.near = 1;
 dirLight.shadow.camera.far = 35;
 dirLight.shadow.camera.left = -18;
@@ -62,6 +66,10 @@ const btnCheckpoint = document.getElementById('btn-checkpoint');
 const btnFullRestart = document.getElementById('btn-full-restart');
 const btnRestart = document.getElementById('btn-restart');
 const btnMute = document.getElementById('btn-mute');
+const btnMutePause = document.getElementById('btn-mute-pause');
+const btnFullscreen = document.getElementById('btn-fullscreen');
+const rotateHint = document.getElementById('rotate-hint');
+const btnDismissRotate = document.getElementById('btn-dismiss-rotate');
 const btnClearCacheStart = document.getElementById('btn-clear-cache-start');
 const btnClearCachePause = document.getElementById('btn-clear-cache-pause');
 
@@ -89,7 +97,7 @@ const BEST_STARS_KEY = 'gemmets_resa_best_stars';
 function resizeCanvas() {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
   renderer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
@@ -157,7 +165,7 @@ function setPaused(nextPaused) {
   if (!gameStarted || gameWon) return;
   paused = nextPaused;
   pauseOverlay.classList.toggle('hidden', !paused);
-  btnPause.textContent = paused ? '▶ Fortsätt' : '⏸ Paus';
+  btnPause.textContent = paused ? '▶ Fortsätt' : '⏸ Meny';
 }
 
 function togglePause() {
@@ -206,7 +214,57 @@ window.addEventListener('keyup', (e) => {
   keys.delete(e.code);
 });
 
-// Touch controls binding
+// Touch controls binding (thumb-slide D-pad + jump/dash buttons)
+const touchDpad = document.getElementById('touch-dpad');
+const touchLeftBtn = document.getElementById('touch-left');
+const touchRightBtn = document.getElementById('touch-right');
+let dpadPointerId = null;
+
+function updateDpadFromPoint(clientX) {
+  if (!touchDpad) return;
+  const rect = touchDpad.getBoundingClientRect();
+  const midX = rect.left + rect.width / 2;
+  const goLeft = clientX < midX;
+  touchState.left = goLeft;
+  touchState.right = !goLeft;
+  if (touchLeftBtn) touchLeftBtn.classList.toggle('active', goLeft);
+  if (touchRightBtn) touchRightBtn.classList.toggle('active', !goLeft);
+}
+
+function clearDpad() {
+  dpadPointerId = null;
+  touchState.left = false;
+  touchState.right = false;
+  if (touchLeftBtn) touchLeftBtn.classList.remove('active');
+  if (touchRightBtn) touchRightBtn.classList.remove('active');
+}
+
+if (touchDpad) {
+  touchDpad.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dpadPointerId = e.pointerId;
+    if (touchDpad.setPointerCapture) {
+      try {
+        touchDpad.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignore if capture is unavailable
+      }
+    }
+    updateDpadFromPoint(e.clientX);
+  });
+  touchDpad.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== dpadPointerId) return;
+    e.preventDefault();
+    updateDpadFromPoint(e.clientX);
+  });
+  touchDpad.addEventListener('pointerup', (e) => {
+    if (e.pointerId === dpadPointerId) clearDpad();
+  });
+  touchDpad.addEventListener('pointercancel', (e) => {
+    if (e.pointerId === dpadPointerId) clearDpad();
+  });
+}
+
 function bindTouchHold(el, keyName) {
   if (!el) return;
   const start = (e) => {
@@ -226,8 +284,6 @@ function bindTouchHold(el, keyName) {
   el.addEventListener('pointerleave', end);
 }
 
-bindTouchHold(document.getElementById('touch-left'), 'left');
-bindTouchHold(document.getElementById('touch-right'), 'right');
 bindTouchHold(document.getElementById('touch-jump'), 'jumpHeld');
 
 const touchDashBtn = document.getElementById('touch-dash');
@@ -244,7 +300,31 @@ if (touchDashBtn) {
 
 function toggleMute() {
   const muted = sound.toggleMute();
-  btnMute.textContent = muted ? '🔇 Tyst' : '🔊 Ljud';
+  const label = muted ? '🔇 Tyst' : '🔊 Ljud';
+  btnMute.textContent = label;
+  if (btnMutePause) btnMutePause.textContent = label;
+}
+
+function tryLockLandscape() {
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      tryLockLandscape();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // Fullscreen can be blocked on unsupported browsers (e.g. iOS Safari)
+  }
+  if (btnFullscreen) {
+    btnFullscreen.textContent = document.fullscreenElement ? '⛶ Stäng helskärm' : '⛶ Helskärm';
+  }
 }
 
 function updateHUD() {
@@ -275,7 +355,7 @@ function resetWorld() {
   gameWon = false;
   paused = false;
   pauseOverlay.classList.add('hidden');
-  btnPause.textContent = '⏸ Paus';
+  btnPause.textContent = '⏸ Meny';
   world.loadWorld(WORLD_DATA);
   player.spawn(WORLD_DATA.spawn);
   camX = player.x + 2.5;
@@ -312,6 +392,7 @@ btnStart.addEventListener('click', () => {
   startOverlay.classList.add('hidden');
   hud.classList.remove('hidden');
   gameStarted = true;
+  if (isMobile) tryLockLandscape();
 });
 
 btnPlayAgain.addEventListener('click', () => {
@@ -332,6 +413,11 @@ btnRestart.addEventListener('click', () => {
   }
 });
 btnMute.addEventListener('click', toggleMute);
+if (btnMutePause) btnMutePause.addEventListener('click', toggleMute);
+if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
+if (btnDismissRotate && rotateHint) {
+  btnDismissRotate.addEventListener('click', () => rotateHint.classList.add('hidden'));
+}
 if (btnClearCacheStart) btnClearCacheStart.addEventListener('click', clearAppCache);
 if (btnClearCachePause) btnClearCachePause.addEventListener('click', clearAppCache);
 
@@ -381,11 +467,15 @@ function animate(now) {
   dashJustPressed = false;
 
   // Smooth 2.5D dolly-zoom camera: constant visible height (11.36 units at z = 0)
+  // On narrow portrait screens, pull back slightly so horizontal lookahead remains playable
   const fov = 10 + 28 * dimensionMix;
-  const camZ = 11.36 / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
-  if (Math.abs(camera.fov - fov) > 0.01) {
+  const baseCamZ = 11.36 / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
+  const portraitZoom = camera.aspect < 1.2 ? Math.max(1, 1.25 / Math.max(0.55, camera.aspect)) : 1;
+  const camZ = baseCamZ * portraitZoom;
+  const targetFar = camZ + 50;
+  if (Math.abs(camera.fov - fov) > 0.01 || Math.abs(camera.far - targetFar) > 0.1) {
     camera.fov = fov;
-    camera.far = camZ + 50;
+    camera.far = targetFar;
     camera.updateProjectionMatrix();
   }
 

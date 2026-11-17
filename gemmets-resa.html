@@ -2,8 +2,11 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Gemmets Resa — Handritat 2.5D-äventyr</title>
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet" />
@@ -30,6 +33,10 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
   background: #1e293b;
   font-family: 'Patrick Hand', 'Chalkboard SE', 'Comic Sans MS', cursive, sans-serif;
   color: var(--ink-dark);
@@ -52,7 +59,7 @@ html, body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  padding: 18px 24px;
+  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -66,14 +73,14 @@ html, body {
 
 #hud > .hud-left {
   position: absolute;
-  top: 18px;
-  left: 24px;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
 }
 
 #hud > .hud-right {
   position: absolute;
-  top: 18px;
-  right: 24px;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
   pointer-events: auto;
 }
 
@@ -176,6 +183,8 @@ kbd {
 .paper-card {
   position: relative;
   width: min(460px, 90vw);
+  max-height: 92dvh;
+  overflow-y: auto;
   background: var(--paper-ice);
   background-image:
     linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
@@ -270,6 +279,46 @@ kbd {
   align-items: stretch;
 }
 
+.pause-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pause-row .paper-btn {
+  flex: 1;
+}
+
+.rotate-hint {
+  display: none;
+  position: absolute;
+  top: max(56px, calc(env(safe-area-inset-top) + 46px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(254, 243, 199, 0.95);
+  border: 2px solid var(--ink-dark);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  pointer-events: auto;
+  z-index: 15;
+}
+
+.rotate-hint button {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
 .cache-row {
   margin-top: 14px;
 }
@@ -301,9 +350,9 @@ kbd {
 .touch-controls {
   display: none;
   position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 18px;
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
   justify-content: space-between;
   pointer-events: none;
 }
@@ -315,13 +364,14 @@ kbd {
 }
 
 .touch-btn {
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: 2.5px solid var(--ink-dark);
-  background: rgba(238, 244, 250, 0.88);
+  background: rgba(238, 244, 250, 0.84);
+  opacity: 0.86;
   color: var(--ink-dark);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   box-shadow: 3px 3px 0 var(--ink-dark);
   touch-action: none;
@@ -332,6 +382,7 @@ kbd {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--ink-dark);
   background: var(--paper-tint);
+  opacity: 1;
 }
 
 .touch-jump {
@@ -340,11 +391,65 @@ kbd {
 }
 
 @media (pointer: coarse) {
-  .controls-hint {
+  .controls-hint,
+  .controls-grid {
     display: none;
   }
   .touch-controls {
     display: flex;
+  }
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  .rotate-hint:not(.hidden) {
+    display: flex;
+  }
+}
+
+@media (pointer: coarse), (max-width: 820px), (max-height: 520px) {
+  .desktop-only-badge,
+  .desktop-only-btn,
+  .controls-hint {
+    display: none;
+  }
+  .paper-badge {
+    padding: 3px 9px;
+    box-shadow: 2px 2px 0 var(--ink-dark);
+  }
+  .badge-label {
+    font-size: 10px;
+  }
+  .badge-value {
+    font-size: 14px;
+  }
+  #btn-pause {
+    padding: 5px 11px;
+    font-size: 14px;
+    box-shadow: 2px 2px 0 var(--ink-dark);
+  }
+}
+
+@media (max-height: 480px) {
+  .paper-card {
+    padding: 18px 20px 16px;
+  }
+  .paper-card h1 {
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+  .description {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .primary-btn {
+    padding: 9px 22px;
+    font-size: 17px;
+  }
+  .pause-actions {
+    gap: 7px;
+  }
+  .cache-row {
+    margin-top: 8px;
   }
 }
   </style>
@@ -362,7 +467,7 @@ kbd {
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div class="hud-left">
-      <div class="paper-badge">
+      <div class="paper-badge desktop-only-badge">
         <span class="badge-label">SIDA</span>
         <span id="level-name" class="badge-value">1. Anteckningslinjer</span>
       </div>
@@ -374,16 +479,21 @@ kbd {
         <span class="badge-label">FRAMSTEG</span>
         <span id="progress-pct" class="badge-value">0%</span>
       </div>
-      <div class="paper-badge">
+      <div class="paper-badge desktop-only-badge">
         <span class="badge-label">TID</span>
         <span id="run-timer" class="badge-value">0:00</span>
       </div>
     </div>
 
+    <div id="rotate-hint" class="rotate-hint">
+      <span>📱 Vänd gärna mobilen till liggande läge</span>
+      <button id="btn-dismiss-rotate" type="button" aria-label="Stäng">✕</button>
+    </div>
+
     <div class="hud-right">
-      <button id="btn-pause" class="paper-btn" title="Pausa (P / Esc)">⏸ Paus</button>
-      <button id="btn-restart" class="paper-btn" title="Starta om från början (Shift+R)">↺ Ny runda</button>
-      <button id="btn-mute" class="paper-btn" title="Ljud på/av (M)">🔊 Ljud</button>
+      <button id="btn-pause" class="paper-btn" title="Pausa (P / Esc)">⏸ Meny</button>
+      <button id="btn-restart" class="paper-btn desktop-only-btn" title="Starta om från början (Shift+R)">↺ Ny runda</button>
+      <button id="btn-mute" class="paper-btn desktop-only-btn" title="Ljud på/av (M)">🔊 Ljud</button>
     </div>
 
     <div class="controls-hint">
@@ -396,7 +506,7 @@ kbd {
 
     <!-- Mobile / Touch controls (shown only on coarse pointers) -->
     <div id="touch-controls" class="touch-controls">
-      <div class="touch-group">
+      <div id="touch-dpad" class="touch-group">
         <button id="touch-left" class="touch-btn" aria-label="Vänster">◀</button>
         <button id="touch-right" class="touch-btn" aria-label="Höger">▶</button>
       </div>
@@ -439,6 +549,10 @@ kbd {
       <p class="description">Ta en andningspaus innan du hoppar vidare.</p>
       <div class="pause-actions">
         <button id="btn-resume" class="primary-btn">Fortsätt</button>
+        <div class="pause-row">
+          <button id="btn-mute-pause" class="paper-btn" type="button">🔊 Ljud</button>
+          <button id="btn-fullscreen" class="paper-btn" type="button">⛶ Helskärm</button>
+        </div>
         <button id="btn-checkpoint" class="paper-btn">↺ Till checkpoint (R)</button>
         <button id="btn-full-restart" class="paper-btn">Börja om från början</button>
         <button id="btn-clear-cache-pause" class="link-btn" type="button">🔄 Rensa cache &amp; ladda om</button>
@@ -3215,9 +3329,13 @@ class PaperclipPlayer {
 }
 
 // --- js/main.js ---
+const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
+const maxDpr = isMobile ? 1.5 : 2;
+const shadowRes = isMobile ? 1024 : 2048;
+
 const canvas = document.getElementById('game-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -3244,7 +3362,7 @@ scene.add(hemiLight);
 const dirLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
 dirLight.position.set(8, 10, 12);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.mapSize.set(shadowRes, shadowRes);
 dirLight.shadow.camera.near = 1;
 dirLight.shadow.camera.far = 35;
 dirLight.shadow.camera.left = -18;
@@ -3273,6 +3391,10 @@ const btnCheckpoint = document.getElementById('btn-checkpoint');
 const btnFullRestart = document.getElementById('btn-full-restart');
 const btnRestart = document.getElementById('btn-restart');
 const btnMute = document.getElementById('btn-mute');
+const btnMutePause = document.getElementById('btn-mute-pause');
+const btnFullscreen = document.getElementById('btn-fullscreen');
+const rotateHint = document.getElementById('rotate-hint');
+const btnDismissRotate = document.getElementById('btn-dismiss-rotate');
 const btnClearCacheStart = document.getElementById('btn-clear-cache-start');
 const btnClearCachePause = document.getElementById('btn-clear-cache-pause');
 
@@ -3300,7 +3422,7 @@ const BEST_STARS_KEY = 'gemmets_resa_best_stars';
 function resizeCanvas() {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
   renderer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
@@ -3368,7 +3490,7 @@ function setPaused(nextPaused) {
   if (!gameStarted || gameWon) return;
   paused = nextPaused;
   pauseOverlay.classList.toggle('hidden', !paused);
-  btnPause.textContent = paused ? '▶ Fortsätt' : '⏸ Paus';
+  btnPause.textContent = paused ? '▶ Fortsätt' : '⏸ Meny';
 }
 
 function togglePause() {
@@ -3417,7 +3539,57 @@ window.addEventListener('keyup', (e) => {
   keys.delete(e.code);
 });
 
-// Touch controls binding
+// Touch controls binding (thumb-slide D-pad + jump/dash buttons)
+const touchDpad = document.getElementById('touch-dpad');
+const touchLeftBtn = document.getElementById('touch-left');
+const touchRightBtn = document.getElementById('touch-right');
+let dpadPointerId = null;
+
+function updateDpadFromPoint(clientX) {
+  if (!touchDpad) return;
+  const rect = touchDpad.getBoundingClientRect();
+  const midX = rect.left + rect.width / 2;
+  const goLeft = clientX < midX;
+  touchState.left = goLeft;
+  touchState.right = !goLeft;
+  if (touchLeftBtn) touchLeftBtn.classList.toggle('active', goLeft);
+  if (touchRightBtn) touchRightBtn.classList.toggle('active', !goLeft);
+}
+
+function clearDpad() {
+  dpadPointerId = null;
+  touchState.left = false;
+  touchState.right = false;
+  if (touchLeftBtn) touchLeftBtn.classList.remove('active');
+  if (touchRightBtn) touchRightBtn.classList.remove('active');
+}
+
+if (touchDpad) {
+  touchDpad.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dpadPointerId = e.pointerId;
+    if (touchDpad.setPointerCapture) {
+      try {
+        touchDpad.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignore if capture is unavailable
+      }
+    }
+    updateDpadFromPoint(e.clientX);
+  });
+  touchDpad.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== dpadPointerId) return;
+    e.preventDefault();
+    updateDpadFromPoint(e.clientX);
+  });
+  touchDpad.addEventListener('pointerup', (e) => {
+    if (e.pointerId === dpadPointerId) clearDpad();
+  });
+  touchDpad.addEventListener('pointercancel', (e) => {
+    if (e.pointerId === dpadPointerId) clearDpad();
+  });
+}
+
 function bindTouchHold(el, keyName) {
   if (!el) return;
   const start = (e) => {
@@ -3437,8 +3609,6 @@ function bindTouchHold(el, keyName) {
   el.addEventListener('pointerleave', end);
 }
 
-bindTouchHold(document.getElementById('touch-left'), 'left');
-bindTouchHold(document.getElementById('touch-right'), 'right');
 bindTouchHold(document.getElementById('touch-jump'), 'jumpHeld');
 
 const touchDashBtn = document.getElementById('touch-dash');
@@ -3455,7 +3625,31 @@ if (touchDashBtn) {
 
 function toggleMute() {
   const muted = sound.toggleMute();
-  btnMute.textContent = muted ? '🔇 Tyst' : '🔊 Ljud';
+  const label = muted ? '🔇 Tyst' : '🔊 Ljud';
+  btnMute.textContent = label;
+  if (btnMutePause) btnMutePause.textContent = label;
+}
+
+function tryLockLandscape() {
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      tryLockLandscape();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // Fullscreen can be blocked on unsupported browsers (e.g. iOS Safari)
+  }
+  if (btnFullscreen) {
+    btnFullscreen.textContent = document.fullscreenElement ? '⛶ Stäng helskärm' : '⛶ Helskärm';
+  }
 }
 
 function updateHUD() {
@@ -3486,7 +3680,7 @@ function resetWorld() {
   gameWon = false;
   paused = false;
   pauseOverlay.classList.add('hidden');
-  btnPause.textContent = '⏸ Paus';
+  btnPause.textContent = '⏸ Meny';
   world.loadWorld(WORLD_DATA);
   player.spawn(WORLD_DATA.spawn);
   camX = player.x + 2.5;
@@ -3523,6 +3717,7 @@ btnStart.addEventListener('click', () => {
   startOverlay.classList.add('hidden');
   hud.classList.remove('hidden');
   gameStarted = true;
+  if (isMobile) tryLockLandscape();
 });
 
 btnPlayAgain.addEventListener('click', () => {
@@ -3543,6 +3738,11 @@ btnRestart.addEventListener('click', () => {
   }
 });
 btnMute.addEventListener('click', toggleMute);
+if (btnMutePause) btnMutePause.addEventListener('click', toggleMute);
+if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
+if (btnDismissRotate && rotateHint) {
+  btnDismissRotate.addEventListener('click', () => rotateHint.classList.add('hidden'));
+}
 if (btnClearCacheStart) btnClearCacheStart.addEventListener('click', clearAppCache);
 if (btnClearCachePause) btnClearCachePause.addEventListener('click', clearAppCache);
 
@@ -3592,11 +3792,15 @@ function animate(now) {
   dashJustPressed = false;
 
   // Smooth 2.5D dolly-zoom camera: constant visible height (11.36 units at z = 0)
+  // On narrow portrait screens, pull back slightly so horizontal lookahead remains playable
   const fov = 10 + 28 * dimensionMix;
-  const camZ = 11.36 / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
-  if (Math.abs(camera.fov - fov) > 0.01) {
+  const baseCamZ = 11.36 / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
+  const portraitZoom = camera.aspect < 1.2 ? Math.max(1, 1.25 / Math.max(0.55, camera.aspect)) : 1;
+  const camZ = baseCamZ * portraitZoom;
+  const targetFar = camZ + 50;
+  if (Math.abs(camera.fov - fov) > 0.01 || Math.abs(camera.far - targetFar) > 0.1) {
     camera.fov = fov;
-    camera.far = camZ + 50;
+    camera.far = targetFar;
     camera.updateProjectionMatrix();
   }
 
