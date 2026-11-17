@@ -36,10 +36,10 @@ export function createChapterPaperTexture(theme) {
   const ctx = canvas.getContext('2d');
 
   const bgMap = {
-    svenska: '#eef4fa',
-    matte: '#e7f1f6',
-    no: '#e5f3f3',
-    slojd: '#eaedf5',
+    svenska: '#f5f3ec',
+    matte: '#e2f0f8',
+    no: '#ddf3f0',
+    slojd: '#efe6d8',
   };
   ctx.fillStyle = bgMap[theme] || '#eaedf5';
   ctx.fillRect(0, 0, w, h);
@@ -52,7 +52,8 @@ export function createChapterPaperTexture(theme) {
 
   const step = 32;
   if (theme === 'svenska') {
-    ctx.strokeStyle = 'rgba(37, 99, 235, 0.22)';
+    // Classic lined notebook with blue rules & red margin line
+    ctx.strokeStyle = 'rgba(37, 99, 235, 0.24)';
     ctx.lineWidth = 1.6;
     for (let y = step; y < h; y += step) {
       ctx.beginPath();
@@ -60,35 +61,70 @@ export function createChapterPaperTexture(theme) {
       ctx.lineTo(w, y);
       ctx.stroke();
     }
+    ctx.strokeStyle = 'rgba(220, 38, 38, 0.22)';
+    ctx.lineWidth = 2.0;
+    ctx.beginPath();
+    ctx.moveTo(56, 0);
+    ctx.lineTo(56, h);
+    ctx.stroke();
   } else if (theme === 'matte') {
-    ctx.strokeStyle = 'rgba(14, 116, 144, 0.18)';
-    ctx.lineWidth = 1.3;
+    // Engineering graph paper: minor + major gridlines
     for (let x = 0; x <= w; x += step) {
+      const major = x % (step * 4) === 0;
+      ctx.strokeStyle = major ? 'rgba(14, 116, 144, 0.30)' : 'rgba(14, 116, 144, 0.13)';
+      ctx.lineWidth = major ? 1.8 : 1.0;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
     }
     for (let y = 0; y <= h; y += step) {
+      const major = y % (step * 4) === 0;
+      ctx.strokeStyle = major ? 'rgba(14, 116, 144, 0.30)' : 'rgba(14, 116, 144, 0.13)';
+      ctx.lineWidth = major ? 1.8 : 1.0;
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(w, y);
       ctx.stroke();
     }
   } else if (theme === 'no') {
-    ctx.fillStyle = 'rgba(13, 148, 136, 0.28)';
+    // Lab notebook: dotted grid + faint benzene/hex rings
+    ctx.fillStyle = 'rgba(13, 148, 136, 0.32)';
     for (let x = step / 2; x < w; x += step) {
       for (let y = step / 2; y < h; y += step) {
         ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
       }
     }
+    ctx.strokeStyle = 'rgba(13, 148, 136, 0.10)';
+    ctx.lineWidth = 1.5;
+    for (const [hx, hy] of [[128, 128], [384, 384]]) {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const px = hx + Math.cos(a) * 42;
+        const py = hy + Math.sin(a) * 42;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
   } else {
-    ctx.strokeStyle = 'rgba(51, 65, 85, 0.14)';
+    // Slöjd & Bild: warm kraft sketchbook with diagonal shading & wide guides
+    ctx.strokeStyle = 'rgba(120, 80, 40, 0.14)';
     ctx.lineWidth = 1.5;
     for (let y = step; y < h; y += step * 2) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(120, 80, 40, 0.06)';
+    ctx.lineWidth = 1.2;
+    for (let x = -h; x < w + h; x += 24) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + h * 0.6, h);
       ctx.stroke();
     }
   }
@@ -420,6 +456,161 @@ export function getDoodleTexture(kind, seed = 10) {
       sketchCircle(ctx, sx - r * 0.55, sy + r * 0.35, r * 0.24, seed + 4, 0, strokeOpts);
       sketchLine(ctx, sx - r * 0.32, sy - r * 0.22, sx + r * 0.85, sy + r * 0.25, seed + 8, 0, strokeOpts);
       sketchLine(ctx, sx - r * 0.32, sy + r * 0.22, sx + r * 0.85, sy - r * 0.25, seed + 12, 0, strokeOpts);
+      break;
+    case 'pencil':
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - r * 0.9, y: sy - r * 0.16 },
+          { x: sx + r * 0.55, y: sy - r * 0.16 },
+          { x: sx + r * 0.95, y: sy },
+          { x: sx + r * 0.55, y: sy + r * 0.16 },
+          { x: sx - r * 0.9, y: sy + r * 0.16 },
+        ],
+        true,
+        seed,
+        0,
+        strokeOpts
+      );
+      sketchLine(ctx, sx - r * 0.65, sy - r * 0.16, sx - r * 0.65, sy + r * 0.16, seed + 6, 0, strokeOpts);
+      break;
+    case 'book':
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - r * 0.85, y: sy - r * 0.5 },
+          { x: sx, y: sy - r * 0.35 },
+          { x: sx + r * 0.85, y: sy - r * 0.5 },
+          { x: sx + r * 0.85, y: sy + r * 0.5 },
+          { x: sx, y: sy + r * 0.62 },
+          { x: sx - r * 0.85, y: sy + r * 0.5 },
+        ],
+        true,
+        seed,
+        0,
+        strokeOpts
+      );
+      sketchLine(ctx, sx, sy - r * 0.35, sx, sy + r * 0.62, seed + 7, 0, strokeOpts);
+      break;
+    case 'protractor':
+      sketchArc(ctx, sx, sy + r * 0.35, r * 0.85, Math.PI, 0, seed, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.85, sy + r * 0.35, sx + r * 0.85, sy + r * 0.35, seed + 5, 0, strokeOpts);
+      sketchLine(ctx, sx, sy + r * 0.35, sx, sy - r * 0.5, seed + 9, 0, strokeOpts);
+      break;
+    case 'cube': {
+      const s = r * 0.48;
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - s, y: sy - s * 0.5 },
+          { x: sx + s * 0.4, y: sy - s * 0.5 },
+          { x: sx + s * 0.4, y: sy + s * 0.9 },
+          { x: sx - s, y: sy + s * 0.9 },
+        ],
+        true,
+        seed,
+        0,
+        strokeOpts
+      );
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - s, y: sy - s * 0.5 },
+          { x: sx - s * 0.3, y: sy - s },
+          { x: sx + s, y: sy - s },
+          { x: sx + s * 0.4, y: sy - s * 0.5 },
+        ],
+        false,
+        seed + 6,
+        0,
+        strokeOpts
+      );
+      sketchLine(ctx, sx + s, sy - s, sx + s, sy + s * 0.4, seed + 11, 0, strokeOpts);
+      sketchLine(ctx, sx + s * 0.4, sy + s * 0.9, sx + s, sy + s * 0.4, seed + 14, 0, strokeOpts);
+      break;
+    }
+    case 'dna': {
+      const p1 = [];
+      const p2 = [];
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10;
+        const x = sx - r * 0.9 + t * r * 1.8;
+        const wave = Math.sin(t * Math.PI * 2.5) * r * 0.32;
+        p1.push({ x, y: sy + wave });
+        p2.push({ x, y: sy - wave });
+        if (i % 2 === 1) sketchLine(ctx, x, sy + wave, x, sy - wave, seed + i * 3, 0, strokeOpts);
+      }
+      sketchPoly(ctx, p1, false, seed + 40, 0, strokeOpts);
+      sketchPoly(ctx, p2, false, seed + 60, 0, strokeOpts);
+      break;
+    }
+    case 'leaf':
+      sketchArc(ctx, sx, sy + r * 0.45, r * 0.75, -Math.PI * 0.85, -Math.PI * 0.15, seed, 0, strokeOpts);
+      sketchArc(ctx, sx, sy - r * 0.45, r * 0.75, Math.PI * 0.15, Math.PI * 0.85, seed + 5, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.85, sy, sx + r * 0.75, sy, seed + 9, 0, strokeOpts);
+      break;
+    case 'magnet':
+      sketchArc(ctx, sx, sy - r * 0.15, r * 0.5, Math.PI, 0, seed, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.5, sy - r * 0.15, sx - r * 0.5, sy + r * 0.55, seed + 4, 0, strokeOpts);
+      sketchLine(ctx, sx + r * 0.5, sy - r * 0.15, sx + r * 0.5, sy + r * 0.55, seed + 8, 0, strokeOpts);
+      break;
+    case 'hammer':
+      sketchLine(ctx, sx - r * 0.65, sy + r * 0.7, sx + r * 0.25, sy - r * 0.2, seed, 0, {
+        ...strokeOpts,
+        lineWidth: 3.0,
+      });
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - r * 0.1, y: sy - r * 0.55 },
+          { x: sx + r * 0.65, y: sy + r * 0.2 },
+          { x: sx + r * 0.42, y: sy + r * 0.42 },
+          { x: sx - r * 0.32, y: sy - r * 0.32 },
+        ],
+        true,
+        seed + 6,
+        0,
+        strokeOpts
+      );
+      break;
+    case 'brush':
+      sketchLine(ctx, sx - r * 0.75, sy + r * 0.65, sx + r * 0.35, sy - r * 0.35, seed, 0, strokeOpts);
+      sketchPoly(
+        ctx,
+        [
+          { x: sx + r * 0.35, y: sy - r * 0.35 },
+          { x: sx + r * 0.8, y: sy - r * 0.55 },
+          { x: sx + r * 0.65, y: sy - r * 0.1 },
+        ],
+        true,
+        seed + 5,
+        0,
+        strokeOpts
+      );
+      break;
+    case 'saw': {
+      sketchLine(ctx, sx - r * 0.85, sy - r * 0.25, sx + r * 0.75, sy - r * 0.25, seed, 0, strokeOpts);
+      const teeth = [];
+      for (let i = 0; i <= 6; i++) {
+        teeth.push({ x: sx - r * 0.75 + (i / 6) * r * 1.45, y: sy + (i % 2 === 0 ? 0.05 : 0.28) * r });
+      }
+      sketchPoly(ctx, teeth, false, seed + 6, 0, strokeOpts);
+      break;
+    }
+    case 'plane':
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - r * 0.9, y: sy + r * 0.1 },
+          { x: sx + r * 0.95, y: sy - r * 0.35 },
+          { x: sx - r * 0.45, y: sy + r * 0.65 },
+        ],
+        true,
+        seed,
+        0,
+        strokeOpts
+      );
+      sketchLine(ctx, sx - r * 0.25, sy + r * 0.28, sx + r * 0.95, sy - r * 0.35, seed + 5, 0, strokeOpts);
       break;
     default:
       sketchArc(ctx, sx, sy, r * 0.65, 0.2, Math.PI * 1.6, seed, 0, strokeOpts);

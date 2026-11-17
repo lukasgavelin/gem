@@ -20,6 +20,7 @@ export class BookWorld {
     this.checkpoints = [];
     this.zLayers = [];
     this.goal = null;
+    this.maxX = 1212;
     this.motesPoints = null;
     this.moteBaseY = [];
     this.motePhases = [];
@@ -36,9 +37,17 @@ export class BookWorld {
     this._clearGroup();
     this.sections = worldData.sections;
     this.zLayers = [];
+    this.maxX = (worldData.goal ? worldData.goal.x : 1200) + 12;
 
     // 1. Chapter Paper Backdrops
-    for (const sec of this.sections) {
+    const tabColors = {
+      svenska: 0x3b82f6,
+      matte: 0x0891b2,
+      no: 0x0d9488,
+      slojd: 0xd97706,
+    };
+    for (let sIdx = 0; sIdx < this.sections.length; sIdx++) {
+      const sec = this.sections[sIdx];
       const span = sec.endX - sec.startX;
       const geo = new THREE.PlaneGeometry(span, 24);
       const tex = createChapterPaperTexture(sec.theme);
@@ -53,6 +62,19 @@ export class BookWorld {
       mesh.receiveShadow = true;
       this.group.add(mesh);
       this.zLayers.push({ obj: mesh, z2d: -0.08, z3d: -1.9 });
+
+      // Colored 3D binder divider tab at the start of chapters 2, 3, 4
+      if (sIdx > 0) {
+        const tabMat = new THREE.MeshStandardMaterial({
+          color: tabColors[sec.theme] || 0x3b82f6,
+          roughness: 0.65,
+        });
+        const tab = new THREE.Mesh(new THREE.BoxGeometry(0.42, 16, 0.25), tabMat);
+        tab.position.set(sec.startX, 0, -1.72);
+        tab.castShadow = true;
+        this.group.add(tab);
+        this.zLayers.push({ obj: tab, z2d: -0.06, z3d: -1.72 });
+      }
     }
 
     // 2. Vertical Page-Crease Seams every 24 world units
@@ -63,7 +85,7 @@ export class BookWorld {
       opacity: 0.22,
       roughness: 0.9,
     });
-    for (let wx = 24; wx <= 408; wx += 24) {
+    for (let wx = 24; wx <= this.maxX; wx += 24) {
       const crease = new THREE.Mesh(creaseGeo, creaseMat);
       crease.position.set(wx, 0, -1.86);
       this.group.add(crease);
@@ -307,12 +329,12 @@ export class BookWorld {
     this.goal = { ...worldData.goal, radius: 1.0, seed: 2800, mesh: ribbonMesh };
 
     // 10. 3D Floating Graphite Dust Motes
-    const moteCount = 180;
+    const moteCount = Math.max(240, Math.round(this.maxX * 0.42));
     const positions = new Float32Array(moteCount * 3);
     this.moteBaseY = [];
     this.motePhases = [];
     for (let i = 0; i < moteCount; i++) {
-      const x = Math.random() * 420 - 5;
+      const x = Math.random() * (this.maxX + 10) - 5;
       const y = (Math.random() - 0.5) * 12;
       const z = (Math.random() - 0.5) * 2.8;
       positions[i * 3] = x;
@@ -335,10 +357,10 @@ export class BookWorld {
 
   _buildSectionDoodles(sections) {
     const themeKinds = {
-      svenska: ['abc', 'quote', 'spiral', 'paperclip'],
-      matte: ['triangle', 'compass', 'pi', 'math_eq'],
-      no: ['flask', 'atom'],
-      slojd: ['scissors', 'spiral'],
+      svenska: ['abc', 'pencil', 'book', 'quote', 'spiral', 'paperclip'],
+      matte: ['triangle', 'compass', 'pi', 'math_eq', 'protractor', 'cube'],
+      no: ['flask', 'atom', 'dna', 'leaf', 'magnet'],
+      slojd: ['scissors', 'hammer', 'brush', 'saw', 'plane', 'spiral'],
     };
 
     const geo = new THREE.PlaneGeometry(1.5, 1.5);
@@ -346,9 +368,9 @@ export class BookWorld {
       const sec = sections[sIdx];
       const pool = themeKinds[sec.theme] || themeKinds.slojd;
       const minX = Math.max(sec.startX + 4, 4);
-      const maxX = Math.min(sec.endX - 4, 408);
+      const maxX = Math.min(sec.endX - 4, this.maxX - 4);
       const span = Math.max(10, maxX - minX);
-      const count = Math.max(6, Math.round(span / 7.5));
+      const count = Math.max(8, Math.round(span / 6.2));
 
       for (let i = 0; i < count; i++) {
         const x = minX + ((i + 0.5) / count) * span;

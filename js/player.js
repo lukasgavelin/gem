@@ -399,11 +399,12 @@ export class PaperclipPlayer {
     this.x += this.vx * dt;
     this.wallDir = 0;
 
+    const maxWorldX = world.maxX || 1212;
     if (this.x - this.halfW < -2) {
       this.x = -2 + this.halfW;
       this.vx = 0;
-    } else if (this.x + this.halfW > 410) {
-      this.x = 410 - this.halfW;
+    } else if (this.x + this.halfW > maxWorldX) {
+      this.x = maxWorldX - this.halfW;
       this.vx = 0;
     }
 

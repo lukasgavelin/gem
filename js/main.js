@@ -97,21 +97,22 @@ let paused = false;
 
 function computeTargetDimension() {
   if (player.dead) return 0;
-  // Automatic chapter progression:
-  // Ch 1 (0..100): 0.0 -> 0.14 (2D notebook)
-  // Ch 2 (100..200): 0.35 -> 0.58 (2.5D math drafting)
-  // Ch 3 (200..300): 0.68 -> 0.85 (3D lab & glass)
-  // Ch 4 (300..400): 1.0 (Full 3D papercraft finale)
-  const x = Math.max(0, Math.min(400, player.x));
+  // Automatic chapter progression across the 1200-unit book:
+  // Ch 1 (0..300):   0.00 -> 0.14 (2D notebook)
+  // Ch 2 (300..600): 0.35 -> 0.58 (2.5D math drafting)
+  // Ch 3 (600..900): 0.68 -> 0.85 (3D lab & glass)
+  // Ch 4 (900..1200): 0.92 -> 1.00 (Full 3D papercraft finale)
+  const goalX = WORLD_DATA.goal.x || 1200;
+  const t = Math.max(0, Math.min(1, player.x / goalX));
   let base = 0;
-  if (x < 100) {
-    base = (x / 100) * 0.14;
-  } else if (x < 200) {
-    base = 0.35 + ((x - 100) / 100) * 0.23;
-  } else if (x < 300) {
-    base = 0.68 + ((x - 200) / 100) * 0.17;
+  if (t < 0.25) {
+    base = (t / 0.25) * 0.14;
+  } else if (t < 0.5) {
+    base = 0.35 + ((t - 0.25) / 0.25) * 0.23;
+  } else if (t < 0.75) {
+    base = 0.68 + ((t - 0.5) / 0.25) * 0.17;
   } else {
-    base = 0.92 + Math.min(1, (x - 300) / 40) * 0.08;
+    base = 0.92 + Math.min(1, (t - 0.75) / 0.1) * 0.08;
   }
 
   // Subtle kinetic pop-out during dash or high-speed bounce
@@ -367,7 +368,7 @@ function animate(now) {
   }
 
   const lookAhead = player.facing * 2.4;
-  const targetCamX = Math.max(4, Math.min(396, player.x + lookAhead));
+  const targetCamX = Math.max(4, Math.min(WORLD_DATA.goal.x - 4, player.x + lookAhead));
   const targetCamY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
 
   camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
