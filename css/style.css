@@ -260,6 +260,26 @@ kbd {
   align-items: stretch;
 }
 
+.cache-row {
+  margin-top: 14px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-btn:hover {
+  color: var(--accent-blue);
+}
+
 .best-stats {
   font-size: 13px;
   font-weight: 700;

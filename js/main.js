@@ -62,6 +62,26 @@ const btnCheckpoint = document.getElementById('btn-checkpoint');
 const btnFullRestart = document.getElementById('btn-full-restart');
 const btnRestart = document.getElementById('btn-restart');
 const btnMute = document.getElementById('btn-mute');
+const btnClearCacheStart = document.getElementById('btn-clear-cache-start');
+const btnClearCachePause = document.getElementById('btn-clear-cache-pause');
+
+async function clearAppCache() {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch {
+    // Ignore storage/cache errors in restricted contexts
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set('v', String(Date.now()));
+  window.location.replace(url.toString());
+}
 
 const BEST_TIME_KEY = 'gemmets_resa_best_time';
 const BEST_STARS_KEY = 'gemmets_resa_best_stars';
@@ -312,6 +332,8 @@ btnRestart.addEventListener('click', () => {
   }
 });
 btnMute.addEventListener('click', toggleMute);
+if (btnClearCacheStart) btnClearCacheStart.addEventListener('click', clearAppCache);
+if (btnClearCachePause) btnClearCachePause.addEventListener('click', clearAppCache);
 
 // Main loop
 let lastTime = performance.now();
