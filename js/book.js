@@ -97,12 +97,18 @@ export class BookWorld {
 
     // 4. 3D Papercraft Platforms (z = 0)
     const sideMatMap = {
-      eraser: 0x93c5fd,
-      springpad: 0x67e8f9,
-      iceblock: 0xa5f3fc,
-      crumble: 0xfecdd3,
-      woodblock: 0xcbd5e1,
-      bookblock: 0x94a3b8,
+      eraser: 0xfb7185,
+      springpad: 0x34d399,
+      iceblock: 0x7dd3fc,
+      crumble: 0xfde68a,
+      woodblock: 0xd9a066,
+      corkblock: 0xd4a373,
+      ruler: 0xfbbf24,
+      setsquare: 0x38bdf8,
+      'postit-yellow': 0xfacc15,
+      'postit-pink': 0xf472b6,
+      'postit-mint': 0x34d399,
+      bookblock: 0x60a5fa,
     };
 
     this.platforms = worldData.platforms.map((p, idx) => {
@@ -282,10 +288,10 @@ export class BookWorld {
 
     this.stars = worldData.stars.map((s, idx) => {
       const mat = new THREE.MeshStandardMaterial({
-        color: 0x67e8f9,
-        emissive: 0x0891b2,
-        emissiveIntensity: 0.25,
-        roughness: 0.35,
+        color: 0xfacc15,
+        emissive: 0xeab308,
+        emissiveIntensity: 0.3,
+        roughness: 0.3,
       });
       const mesh = new THREE.Mesh(starGeo, mat);
       mesh.position.set(s.x, s.y, 0);
@@ -320,7 +326,7 @@ export class BookWorld {
     ribbonGeo.center();
     const ribbonMesh = new THREE.Mesh(
       ribbonGeo,
-      new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.45 })
+      new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.45 })
     );
     ribbonMesh.position.set(worldData.goal.x, worldData.goal.y, 0);
     ribbonMesh.castShadow = true;

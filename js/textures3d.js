@@ -152,7 +152,7 @@ export function getPlatformTexture(style = 'default', boilFrame = 0, shaking = f
   ctx.clearRect(0, 0, w, h);
 
   if (style === 'ruler') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#c4d3e3', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#fde68a', shadow: false });
     const ticks = 16;
     for (let i = 1; i < ticks; i++) {
       const tx = pad + (i / ticks) * bw;
@@ -165,7 +165,7 @@ export function getPlatformTexture(style = 'default', boilFrame = 0, shaking = f
       });
     }
   } else if (style === 'bookblock') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cbd5e1', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e2e8f0', shadow: false });
     ctx.fillStyle = '#3b82f6';
     ctx.fillRect(pad + 2, pad + 2, 20, bh - 4);
     sketchLine(ctx, pad + 22, pad, pad + 22, h - pad, seed + 4, boilFrame, {
@@ -226,31 +226,31 @@ export function getPlatformTexture(style = 'default', boilFrame = 0, shaking = f
       passes: 1,
     });
   } else if (style === 'springpad') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#a5f3fc', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#6ee7b7', shadow: false });
     for (let b = -1; b <= 1; b++) {
       sketchCircle(ctx, cx + b * 55, cy, 10, seed + b * 9, boilFrame, {
-        color: '#0e7490',
+        color: '#047857',
         lineWidth: 2.4,
         passes: 1,
       });
     }
   } else if (style === 'corkblock') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cbd5e1', hatch: true, shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e7c89b', hatch: true, shadow: false });
   } else if (style === 'woodblock') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#d8e2ec', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#f3d5a5', shadow: false });
     sketchLine(ctx, pad + 14, cy - 12, w - pad - 14, cy - 8, seed + 3, boilFrame, {
-      color: 'rgba(51, 65, 85, 0.32)',
+      color: 'rgba(120, 53, 15, 0.35)',
       lineWidth: 1.8,
       passes: 1,
     });
     sketchLine(ctx, pad + 18, cy + 12, w - pad - 16, cy + 9, seed + 7, boilFrame, {
-      color: 'rgba(51, 65, 85, 0.32)',
+      color: 'rgba(120, 53, 15, 0.35)',
       lineWidth: 1.8,
       passes: 1,
     });
   } else if (style === 'crumble') {
     sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, {
-      fill: shaking ? '#fecdd3' : '#f1f5f9',
+      fill: shaking ? '#fda4af' : '#fef3c7',
       shadow: false,
       lineWidth: 2.2,
     });
@@ -260,8 +260,8 @@ export function getPlatformTexture(style = 'default', boilFrame = 0, shaking = f
       passes: 1,
     });
   } else if (style === 'eraser') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e2ecf5', shadow: false });
-    ctx.fillStyle = '#5b8ec9';
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#fda4af', shadow: false });
+    ctx.fillStyle = '#60a5fa';
     ctx.fillRect(w * 0.68, pad + 1, w * 0.32 - pad - 1, bh - 2);
     sketchLine(ctx, w * 0.68, pad, w * 0.68, h - pad, seed + 9, boilFrame, {
       lineWidth: 2.5,
@@ -269,12 +269,12 @@ export function getPlatformTexture(style = 'default', boilFrame = 0, shaking = f
     });
   } else if (style.startsWith('postit')) {
     const colorMap = {
-      'postit-yellow': '#b8e4f9',
-      'postit-pink': '#cbd5f0',
-      'postit-mint': '#b3ebe2',
+      'postit-yellow': '#fef08a',
+      'postit-pink': '#fbcfe8',
+      'postit-mint': '#a7f3d0',
     };
     sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, {
-      fill: colorMap[style] || '#b8e4f9',
+      fill: colorMap[style] || '#fef08a',
       shadow: false,
     });
   } else {

@@ -1,11 +1,12 @@
 :root {
-  --paper-ice: #eef4fa;
-  --paper-tint: #dce7f3;
-  --ink-dark: #182230;
-  --ink-muted: #52637a;
+  --paper-ice: #fffdf6;
+  --paper-tint: #fef3c7;
+  --ink-dark: #1e293b;
+  --ink-muted: #475569;
   --accent-blue: #2563eb;
-  --accent-cyan: #0891b2;
-  --shadow-cool: rgba(10, 18, 30, 0.35);
+  --accent-cyan: #f43f5e;
+  --accent-gold: #f59e0b;
+  --shadow-cool: rgba(15, 23, 42, 0.32);
 }
 
 * {
@@ -19,8 +20,8 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #141c26;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #1e293b;
+  font-family: 'Patrick Hand', 'Chalkboard SE', 'Comic Sans MS', cursive, sans-serif;
   color: var(--ink-dark);
 }
 
@@ -68,9 +69,9 @@ html, body {
 
 .paper-badge {
   background: var(--paper-ice);
-  padding: 7px 14px;
-  border-radius: 2px;
-  border: 2px solid var(--ink-dark);
+  padding: 6px 14px;
+  border-radius: 6px 10px 7px 9px;
+  border: 2.5px solid var(--ink-dark);
   box-shadow: 3px 3px 0 var(--ink-dark);
   display: flex;
   flex-direction: column;
@@ -81,25 +82,27 @@ html, body {
 }
 
 .badge-label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   color: var(--ink-muted);
 }
 
 .badge-value {
-  font-size: 15px;
-  font-weight: 800;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--ink-dark);
 }
 
 .paper-btn {
   pointer-events: auto;
   background: var(--paper-ice);
-  border: 2px solid var(--ink-dark);
-  padding: 8px 13px;
-  border-radius: 2px;
-  font-size: 13px;
+  border: 2.5px solid var(--ink-dark);
+  padding: 7px 14px;
+  border-radius: 8px 6px 9px 7px;
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ink-dark);
   cursor: pointer;
@@ -162,15 +165,15 @@ kbd {
 
 .paper-card {
   position: relative;
-  width: min(450px, 90vw);
+  width: min(460px, 90vw);
   background: var(--paper-ice);
   background-image:
     linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
   background-size: 22px 22px;
   padding: 34px 32px 28px;
-  border-radius: 3px;
-  border: 2.5px solid var(--ink-dark);
+  border-radius: 10px 14px 12px 9px;
+  border: 3px solid var(--ink-dark);
   box-shadow: 8px 8px 0 var(--ink-dark);
   text-align: center;
 }
@@ -180,32 +183,34 @@ kbd {
   top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--accent-cyan);
-  border: 2px solid var(--ink-dark);
+  border: 2.5px solid var(--ink-dark);
   box-shadow: 0 3px 0 var(--ink-dark);
 }
 
 .subtitle {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: var(--accent-blue);
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-cyan);
   margin-bottom: 6px;
 }
 
 .paper-card h1 {
-  font-size: 32px;
-  font-weight: 900;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 38px;
+  font-weight: 700;
   margin-bottom: 12px;
   color: var(--ink-dark);
 }
 
 .description {
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 18px;
+  line-height: 1.45;
   color: var(--ink-muted);
   margin-bottom: 20px;
 }
@@ -215,23 +220,24 @@ kbd {
   grid-template-columns: auto 1fr;
   gap: 8px 14px;
   text-align: left;
-  background: rgba(203, 222, 242, 0.55);
-  border: 1.5px solid var(--ink-dark);
+  background: rgba(254, 243, 199, 0.65);
+  border: 2px solid var(--ink-dark);
   padding: 13px 15px;
-  border-radius: 2px;
+  border-radius: 8px;
   margin-bottom: 22px;
-  font-size: 13px;
+  font-size: 16px;
   align-items: center;
 }
 
 .primary-btn {
   background: var(--accent-blue);
   color: #fff;
-  border: 2px solid var(--ink-dark);
-  padding: 12px 28px;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 3px;
+  border: 2.5px solid var(--ink-dark);
+  padding: 12px 30px;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  border-radius: 10px 8px 11px 9px;
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--ink-dark);
   transition: transform 0.1s ease, box-shadow 0.1s ease;

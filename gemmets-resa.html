@@ -4,15 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gemmets Resa — Handritat 2.5D-äventyr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
 :root {
-  --paper-ice: #eef4fa;
-  --paper-tint: #dce7f3;
-  --ink-dark: #182230;
-  --ink-muted: #52637a;
+  --paper-ice: #fffdf6;
+  --paper-tint: #fef3c7;
+  --ink-dark: #1e293b;
+  --ink-muted: #475569;
   --accent-blue: #2563eb;
-  --accent-cyan: #0891b2;
-  --shadow-cool: rgba(10, 18, 30, 0.35);
+  --accent-cyan: #f43f5e;
+  --accent-gold: #f59e0b;
+  --shadow-cool: rgba(15, 23, 42, 0.32);
 }
 
 * {
@@ -26,8 +30,8 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #141c26;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #1e293b;
+  font-family: 'Patrick Hand', 'Chalkboard SE', 'Comic Sans MS', cursive, sans-serif;
   color: var(--ink-dark);
 }
 
@@ -75,9 +79,9 @@ html, body {
 
 .paper-badge {
   background: var(--paper-ice);
-  padding: 7px 14px;
-  border-radius: 2px;
-  border: 2px solid var(--ink-dark);
+  padding: 6px 14px;
+  border-radius: 6px 10px 7px 9px;
+  border: 2.5px solid var(--ink-dark);
   box-shadow: 3px 3px 0 var(--ink-dark);
   display: flex;
   flex-direction: column;
@@ -88,25 +92,27 @@ html, body {
 }
 
 .badge-label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   color: var(--ink-muted);
 }
 
 .badge-value {
-  font-size: 15px;
-  font-weight: 800;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--ink-dark);
 }
 
 .paper-btn {
   pointer-events: auto;
   background: var(--paper-ice);
-  border: 2px solid var(--ink-dark);
-  padding: 8px 13px;
-  border-radius: 2px;
-  font-size: 13px;
+  border: 2.5px solid var(--ink-dark);
+  padding: 7px 14px;
+  border-radius: 8px 6px 9px 7px;
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ink-dark);
   cursor: pointer;
@@ -169,15 +175,15 @@ kbd {
 
 .paper-card {
   position: relative;
-  width: min(450px, 90vw);
+  width: min(460px, 90vw);
   background: var(--paper-ice);
   background-image:
     linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
   background-size: 22px 22px;
   padding: 34px 32px 28px;
-  border-radius: 3px;
-  border: 2.5px solid var(--ink-dark);
+  border-radius: 10px 14px 12px 9px;
+  border: 3px solid var(--ink-dark);
   box-shadow: 8px 8px 0 var(--ink-dark);
   text-align: center;
 }
@@ -187,32 +193,34 @@ kbd {
   top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--accent-cyan);
-  border: 2px solid var(--ink-dark);
+  border: 2.5px solid var(--ink-dark);
   box-shadow: 0 3px 0 var(--ink-dark);
 }
 
 .subtitle {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: var(--accent-blue);
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-cyan);
   margin-bottom: 6px;
 }
 
 .paper-card h1 {
-  font-size: 32px;
-  font-weight: 900;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 38px;
+  font-weight: 700;
   margin-bottom: 12px;
   color: var(--ink-dark);
 }
 
 .description {
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 18px;
+  line-height: 1.45;
   color: var(--ink-muted);
   margin-bottom: 20px;
 }
@@ -222,23 +230,24 @@ kbd {
   grid-template-columns: auto 1fr;
   gap: 8px 14px;
   text-align: left;
-  background: rgba(203, 222, 242, 0.55);
-  border: 1.5px solid var(--ink-dark);
+  background: rgba(254, 243, 199, 0.65);
+  border: 2px solid var(--ink-dark);
   padding: 13px 15px;
-  border-radius: 2px;
+  border-radius: 8px;
   margin-bottom: 22px;
-  font-size: 13px;
+  font-size: 16px;
   align-items: center;
 }
 
 .primary-btn {
   background: var(--accent-blue);
   color: #fff;
-  border: 2px solid var(--ink-dark);
-  padding: 12px 28px;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 3px;
+  border: 2.5px solid var(--ink-dark);
+  padding: 12px 30px;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  border-radius: 10px 8px 11px 9px;
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--ink-dark);
   transition: transform 0.1s ease, box-shadow 0.1s ease;
@@ -960,7 +969,7 @@ function sketchText(ctx, text, x, y, seed, boilFrame, opts = {}) {
     color = INK,
     fontSize = 18,
     weight = '700',
-    fontFamily = '"Comic Sans MS", "Chalkboard SE", "Bradley Hand", cursive, sans-serif',
+    fontFamily = '"Patrick Hand", "Chalkboard SE", "Comic Sans MS", "Bradley Hand", cursive, sans-serif',
     align = 'center',
     baseline = 'middle',
     wobble = 1.1,
@@ -1150,7 +1159,7 @@ function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
   ctx.clearRect(0, 0, w, h);
 
   if (style === 'ruler') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#c4d3e3', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#fde68a', shadow: false });
     const ticks = 16;
     for (let i = 1; i < ticks; i++) {
       const tx = pad + (i / ticks) * bw;
@@ -1163,7 +1172,7 @@ function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
       });
     }
   } else if (style === 'bookblock') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cbd5e1', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e2e8f0', shadow: false });
     ctx.fillStyle = '#3b82f6';
     ctx.fillRect(pad + 2, pad + 2, 20, bh - 4);
     sketchLine(ctx, pad + 22, pad, pad + 22, h - pad, seed + 4, boilFrame, {
@@ -1224,31 +1233,31 @@ function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
       passes: 1,
     });
   } else if (style === 'springpad') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#a5f3fc', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#6ee7b7', shadow: false });
     for (let b = -1; b <= 1; b++) {
       sketchCircle(ctx, cx + b * 55, cy, 10, seed + b * 9, boilFrame, {
-        color: '#0e7490',
+        color: '#047857',
         lineWidth: 2.4,
         passes: 1,
       });
     }
   } else if (style === 'corkblock') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cbd5e1', hatch: true, shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e7c89b', hatch: true, shadow: false });
   } else if (style === 'woodblock') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#d8e2ec', shadow: false });
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#f3d5a5', shadow: false });
     sketchLine(ctx, pad + 14, cy - 12, w - pad - 14, cy - 8, seed + 3, boilFrame, {
-      color: 'rgba(51, 65, 85, 0.32)',
+      color: 'rgba(120, 53, 15, 0.35)',
       lineWidth: 1.8,
       passes: 1,
     });
     sketchLine(ctx, pad + 18, cy + 12, w - pad - 16, cy + 9, seed + 7, boilFrame, {
-      color: 'rgba(51, 65, 85, 0.32)',
+      color: 'rgba(120, 53, 15, 0.35)',
       lineWidth: 1.8,
       passes: 1,
     });
   } else if (style === 'crumble') {
     sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, {
-      fill: shaking ? '#fecdd3' : '#f1f5f9',
+      fill: shaking ? '#fda4af' : '#fef3c7',
       shadow: false,
       lineWidth: 2.2,
     });
@@ -1258,8 +1267,8 @@ function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
       passes: 1,
     });
   } else if (style === 'eraser') {
-    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e2ecf5', shadow: false });
-    ctx.fillStyle = '#5b8ec9';
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#fda4af', shadow: false });
+    ctx.fillStyle = '#60a5fa';
     ctx.fillRect(w * 0.68, pad + 1, w * 0.32 - pad - 1, bh - 2);
     sketchLine(ctx, w * 0.68, pad, w * 0.68, h - pad, seed + 9, boilFrame, {
       lineWidth: 2.5,
@@ -1267,12 +1276,12 @@ function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
     });
   } else if (style.startsWith('postit')) {
     const colorMap = {
-      'postit-yellow': '#b8e4f9',
-      'postit-pink': '#cbd5f0',
-      'postit-mint': '#b3ebe2',
+      'postit-yellow': '#fef08a',
+      'postit-pink': '#fbcfe8',
+      'postit-mint': '#a7f3d0',
     };
     sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, {
-      fill: colorMap[style] || '#b8e4f9',
+      fill: colorMap[style] || '#fef08a',
       shadow: false,
     });
   } else {
@@ -2199,12 +2208,18 @@ class BookWorld {
 
     // 4. 3D Papercraft Platforms (z = 0)
     const sideMatMap = {
-      eraser: 0x93c5fd,
-      springpad: 0x67e8f9,
-      iceblock: 0xa5f3fc,
-      crumble: 0xfecdd3,
-      woodblock: 0xcbd5e1,
-      bookblock: 0x94a3b8,
+      eraser: 0xfb7185,
+      springpad: 0x34d399,
+      iceblock: 0x7dd3fc,
+      crumble: 0xfde68a,
+      woodblock: 0xd9a066,
+      corkblock: 0xd4a373,
+      ruler: 0xfbbf24,
+      setsquare: 0x38bdf8,
+      'postit-yellow': 0xfacc15,
+      'postit-pink': 0xf472b6,
+      'postit-mint': 0x34d399,
+      bookblock: 0x60a5fa,
     };
 
     this.platforms = worldData.platforms.map((p, idx) => {
@@ -2384,10 +2399,10 @@ class BookWorld {
 
     this.stars = worldData.stars.map((s, idx) => {
       const mat = new THREE.MeshStandardMaterial({
-        color: 0x67e8f9,
-        emissive: 0x0891b2,
-        emissiveIntensity: 0.25,
-        roughness: 0.35,
+        color: 0xfacc15,
+        emissive: 0xeab308,
+        emissiveIntensity: 0.3,
+        roughness: 0.3,
       });
       const mesh = new THREE.Mesh(starGeo, mat);
       mesh.position.set(s.x, s.y, 0);
@@ -2422,7 +2437,7 @@ class BookWorld {
     ribbonGeo.center();
     const ribbonMesh = new THREE.Mesh(
       ribbonGeo,
-      new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.45 })
+      new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.45 })
     );
     ribbonMesh.position.set(worldData.goal.x, worldData.goal.y, 0);
     ribbonMesh.castShadow = true;
