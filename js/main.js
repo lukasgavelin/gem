@@ -87,9 +87,34 @@ let starsCollected = 0;
 let deaths = 0;
 let runTime = 0;
 let worldTime = 0;
+let dimensionMix = 0;
 let gameStarted = false;
 let gameWon = false;
 let paused = false;
+
+function computeTargetDimension() {
+  if (player.dead) return 0;
+  // Automatic chapter progression:
+  // Ch 1 (0..100): 0.0 -> 0.14 (2D notebook)
+  // Ch 2 (100..200): 0.35 -> 0.58 (2.5D math drafting)
+  // Ch 3 (200..300): 0.68 -> 0.85 (3D lab & glass)
+  // Ch 4 (300..400): 1.0 (Full 3D papercraft finale)
+  const x = Math.max(0, Math.min(400, player.x));
+  let base = 0;
+  if (x < 100) {
+    base = (x / 100) * 0.14;
+  } else if (x < 200) {
+    base = 0.35 + ((x - 100) / 100) * 0.23;
+  } else if (x < 300) {
+    base = 0.68 + ((x - 200) / 100) * 0.17;
+  } else {
+    base = 0.92 + Math.min(1, (x - 300) / 40) * 0.08;
+  }
+
+  // Subtle kinetic pop-out during dash or high-speed bounce
+  const kineticBoost = player.dashTimer > 0 ? 0.32 : Math.abs(player.vy) > 16 ? 0.2 : 0;
+  return Math.min(1, base + kineticBoost);
+}
 
 // Input state
 const keys = new Set();
@@ -222,6 +247,7 @@ function resetWorld() {
   deaths = 0;
   runTime = 0;
   worldTime = 0;
+  dimensionMix = 0;
   gameWon = false;
   paused = false;
   pauseOverlay.classList.add('hidden');
@@ -293,7 +319,10 @@ function animate(now) {
 
   if (!paused) {
     worldTime += dt;
-    world.update(worldTime, dt);
+    const targetDim = computeTargetDimension();
+    const dimSpeed = player.dead ? 10 : 3.2;
+    dimensionMix += (targetDim - dimensionMix) * Math.min(1, dt * dimSpeed);
+    world.update(worldTime, dt, dimensionMix);
   }
 
   if (gameStarted && !gameWon && !paused) {
@@ -325,7 +354,15 @@ function animate(now) {
   jumpJustPressed = false;
   dashJustPressed = false;
 
-  // Smooth 2.5D sidescrolling camera with lookahead & subtle perspective angle
+  // Smooth 2.5D dolly-zoom camera: constant visible height (11.36 units at z = 0)
+  const fov = 10 + 28 * dimensionMix;
+  const camZ = 11.36 / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
+  if (Math.abs(camera.fov - fov) > 0.01) {
+    camera.fov = fov;
+    camera.far = camZ + 50;
+    camera.updateProjectionMatrix();
+  }
+
   const lookAhead = player.facing * 2.4;
   const targetCamX = Math.max(4, Math.min(396, player.x + lookAhead));
   const targetCamY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
@@ -333,15 +370,20 @@ function animate(now) {
   camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
   camY += (targetCamY - camY) * Math.min(1, dt * 4.2);
 
-  camera.position.set(camX, camY + 0.35, 16.5);
-  camera.lookAt(camX + player.facing * 0.35, camY, 0);
+  camera.position.set(camX, camY + 0.35 * dimensionMix, camZ);
+  camera.lookAt(camX + player.facing * 0.35 * dimensionMix, camY, 0);
+
+  // Dynamic 2D flat lighting -> 3D desk-lamp shadows
+  dirLight.intensity = 1.35 * dimensionMix;
+  hemiLight.intensity = 1.55 - 0.4 * dimensionMix;
+  renderer.shadowMap.enabled = dimensionMix > 0.05;
 
   // Keep directional shadow frustum centered on camera
   dirLight.position.set(camX + 5, camY + 9, 12);
   dirLight.target.position.set(camX, camY, 0);
   dirLight.target.updateMatrixWorld();
 
-  player.syncVisuals();
+  player.syncVisuals(worldTime, dimensionMix);
   renderer.render(scene, camera);
 }
 

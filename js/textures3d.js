@@ -430,3 +430,64 @@ export function getDoodleTexture(kind, seed = 10) {
   doodleTexCache.set(kind, tex);
   return tex;
 }
+
+const playerTexCache = new Map();
+
+export function getPlayer2DTexture(canDash = true, boilFrame = 0) {
+  const key = `${canDash ? 1 : 0}:${boilFrame}`;
+  if (playerTexCache.has(key)) return playerTexCache.get(key);
+
+  const w = 128;
+  const h = 154;
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const rawPts = [
+    { x: cx - 8, y: cy + 16 },
+    { x: cx - 8, y: cy - 30 },
+    { x: cx, y: cy - 42 },
+    { x: cx + 10, y: cy - 42 },
+    { x: cx + 18, y: cy - 30 },
+    { x: cx + 18, y: cy + 36 },
+    { x: cx + 8, y: cy + 48 },
+    { x: cx - 10, y: cy + 48 },
+    { x: cx - 20, y: cy + 36 },
+    { x: cx - 20, y: cy - 34 },
+    { x: cx - 10, y: cy - 50 },
+    { x: cx + 12, y: cy - 50 },
+    { x: cx + 24, y: cy - 34 },
+    { x: cx + 24, y: cy + 18 },
+  ];
+
+  const wireColor = canDash ? '#2563eb' : '#64748b';
+
+  sketchPoly(ctx, rawPts, false, 777, boilFrame, {
+    color: INK,
+    lineWidth: 9.0,
+    wobble: 2.2,
+    overshoot: 1.5,
+    passes: 1,
+    alpha: 0.95,
+  });
+  sketchPoly(ctx, rawPts, false, 779, boilFrame, {
+    color: wireColor,
+    lineWidth: 4.8,
+    wobble: 1.8,
+    overshoot: 1.0,
+    passes: 2,
+    alpha: 0.95,
+  });
+
+  // Boiling ink-dot eyes (facing right by default; mesh flips for left)
+  ctx.fillStyle = INK;
+  ctx.beginPath();
+  ctx.ellipse(cx - 2, cy - 16, 5.2, 6.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 14, cy - 16, 5.2, 6.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = toTexture(canvas);
+  playerTexCache.set(key, tex);
+  return tex;
+}

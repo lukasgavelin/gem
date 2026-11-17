@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { sound } from './audio.js';
+import { BOIL_FPS } from './sketch2d.js';
+import { getPlayer2DTexture } from './textures3d.js';
 
 export class PaperclipPlayer {
   constructor(scene) {
@@ -86,6 +88,17 @@ export class PaperclipPlayer {
     this.leftEye.position.set(-0.07, 0.15, 0.07);
     this.rightEye.position.set(0.08, 0.15, 0.07);
     this.group.add(this.leftEye, this.rightEye);
+
+    // 2D boiling-line paperclip sprite for low dimensionMix
+    this.sprite2DMat = new THREE.MeshBasicMaterial({
+      map: getPlayer2DTexture(true, 0),
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    this.sprite2D = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.15), this.sprite2DMat);
+    this.sprite2D.position.z = 0.03;
+    this.sprite2D.visible = false;
+    this.group.add(this.sprite2D);
 
     this.scene.add(this.group);
 
@@ -527,15 +540,34 @@ export class PaperclipPlayer {
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
   }
 
-  syncVisuals() {
+  syncVisuals(time = 0, dimensionMix = 1) {
     this.group.visible = !this.dead;
     if (this.dead) return;
 
-    this.group.position.set(this.x, this.y, 0);
+    this.group.position.set(this.x, this.y, 0.02);
     const lean = -this.vx * 0.025;
     this.group.rotation.z = lean + this.spinAngle;
-    this.group.rotation.y = this.facing * 0.18 + this.spinAngle * 0.4;
-    this.group.scale.set(this.scaleX, this.scaleY, 1);
+
+    const use2D = dimensionMix < 0.35;
+    this.sprite2D.visible = use2D;
+    this.wireMesh.visible = !use2D;
+    this.leftEye.visible = !use2D;
+    this.rightEye.visible = !use2D;
+
+    if (use2D) {
+      this.group.rotation.y = 0;
+      this.group.scale.set(this.scaleX * this.facing, this.scaleY, 1);
+      const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+      const tex = getPlayer2DTexture(this.canDash, boilFrame);
+      if (this.sprite2DMat.map !== tex) {
+        this.sprite2DMat.map = tex;
+        this.sprite2DMat.needsUpdate = true;
+      }
+      return;
+    }
+
+    this.group.rotation.y = (this.facing * 0.18 + this.spinAngle * 0.4) * dimensionMix;
+    this.group.scale.set(this.scaleX, this.scaleY, 0.15 + 0.85 * dimensionMix);
 
     this.wireMat.color.setHex(this.canDash ? 0x2563eb : 0x64748b);
 

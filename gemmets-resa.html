@@ -1427,6 +1427,66 @@ function getDoodleTexture(kind, seed = 10) {
   return tex;
 }
 
+const playerTexCache = new Map();
+function getPlayer2DTexture(canDash = true, boilFrame = 0) {
+  const key = `${canDash ? 1 : 0}:${boilFrame}`;
+  if (playerTexCache.has(key)) return playerTexCache.get(key);
+
+  const w = 128;
+  const h = 154;
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const rawPts = [
+    { x: cx - 8, y: cy + 16 },
+    { x: cx - 8, y: cy - 30 },
+    { x: cx, y: cy - 42 },
+    { x: cx + 10, y: cy - 42 },
+    { x: cx + 18, y: cy - 30 },
+    { x: cx + 18, y: cy + 36 },
+    { x: cx + 8, y: cy + 48 },
+    { x: cx - 10, y: cy + 48 },
+    { x: cx - 20, y: cy + 36 },
+    { x: cx - 20, y: cy - 34 },
+    { x: cx - 10, y: cy - 50 },
+    { x: cx + 12, y: cy - 50 },
+    { x: cx + 24, y: cy - 34 },
+    { x: cx + 24, y: cy + 18 },
+  ];
+
+  const wireColor = canDash ? '#2563eb' : '#64748b';
+
+  sketchPoly(ctx, rawPts, false, 777, boilFrame, {
+    color: INK,
+    lineWidth: 9.0,
+    wobble: 2.2,
+    overshoot: 1.5,
+    passes: 1,
+    alpha: 0.95,
+  });
+  sketchPoly(ctx, rawPts, false, 779, boilFrame, {
+    color: wireColor,
+    lineWidth: 4.8,
+    wobble: 1.8,
+    overshoot: 1.0,
+    passes: 2,
+    alpha: 0.95,
+  });
+
+  // Boiling ink-dot eyes (facing right by default; mesh flips for left)
+  ctx.fillStyle = INK;
+  ctx.beginPath();
+  ctx.ellipse(cx - 2, cy - 16, 5.2, 6.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 14, cy - 16, 5.2, 6.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = toTexture(canvas);
+  playerTexCache.set(key, tex);
+  return tex;
+}
+
 // --- js/levels.js ---
 // Continuous left-to-right sidescrolling book world (X: 0 -> 400)
 // 4 long middle-school subject chapters with steeper difficulty curve
@@ -1743,6 +1803,7 @@ class BookWorld {
     this.hazards = [];
     this.stars = [];
     this.checkpoints = [];
+    this.zLayers = [];
     this.goal = null;
     this.motesPoints = null;
     this.moteBaseY = [];
@@ -1759,8 +1820,9 @@ class BookWorld {
   loadWorld(worldData) {
     this._clearGroup();
     this.sections = worldData.sections;
+    this.zLayers = [];
 
-    // 1. Chapter Paper Backdrops (z = -1.9)
+    // 1. Chapter Paper Backdrops
     for (const sec of this.sections) {
       const span = sec.endX - sec.startX;
       const geo = new THREE.PlaneGeometry(span, 24);
@@ -1775,6 +1837,7 @@ class BookWorld {
       mesh.position.set(sec.startX + span / 2, 0, -1.9);
       mesh.receiveShadow = true;
       this.group.add(mesh);
+      this.zLayers.push({ obj: mesh, z2d: -0.08, z3d: -1.9 });
     }
 
     // 2. Vertical Page-Crease Seams every 24 world units
@@ -1789,6 +1852,7 @@ class BookWorld {
       const crease = new THREE.Mesh(creaseGeo, creaseMat);
       crease.position.set(wx, 0, -1.86);
       this.group.add(crease);
+      this.zLayers.push({ obj: crease, z2d: -0.07, z3d: -1.86 });
     }
 
     // 3. Parallax Background Doodles (z = -1.35)
@@ -1857,6 +1921,11 @@ class BookWorld {
         const p2 = new THREE.Mesh(pinGeo, railMat);
         p2.position.set(x2, y2, -0.65);
         this.group.add(p1, p2);
+        this.zLayers.push(
+          { obj: rail, z2d: -0.03, z3d: -0.65 },
+          { obj: p1, z2d: -0.03, z3d: -0.65 },
+          { obj: p2, z2d: -0.03, z3d: -0.65 }
+        );
       }
 
       return {
@@ -1870,6 +1939,7 @@ class BookWorld {
         crumble: Boolean(p.crumble),
         crumbleState: 'solid',
         crumbleTimer: 0,
+        fallAnim: 0,
         slippery: Boolean(p.slippery),
         seed: 100 + idx * 31.7,
         mesh,
@@ -1878,7 +1948,7 @@ class BookWorld {
       };
     });
 
-    // 5. Tutorial & Chapter Signposts (z = -0.75)
+    // 5. Tutorial & Chapter Signposts
     for (const sign of worldData.signs || []) {
       const tex = createSignTexture(sign);
       const geo = new THREE.PlaneGeometry(4.2, 1.85);
@@ -1886,6 +1956,7 @@ class BookWorld {
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(sign.x, sign.y, -0.75);
       this.group.add(mesh);
+      this.zLayers.push({ obj: mesh, z2d: -0.04, z3d: -0.75 });
     }
 
     // 6. 3D Ink Spikes (Hazards)
@@ -1940,6 +2011,7 @@ class BookWorld {
       cpGroup.add(flag);
 
       this.group.add(cpGroup);
+      this.zLayers.push({ obj: cpGroup, z2d: -0.01, z3d: -0.15 });
       return {
         ...cp,
         activated: false,
@@ -2072,12 +2144,18 @@ class BookWorld {
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y, -1.35);
         this.group.add(mesh);
+        this.zLayers.push({ obj: mesh, z2d: -0.05, z3d: -1.35 });
       }
     }
   }
 
-  update(time, dt) {
+  update(time, dt, dimensionMix = 1) {
     const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+    const zScale = 0.02 + 0.98 * dimensionMix;
+
+    for (const layer of this.zLayers) {
+      layer.obj.position.z = layer.z2d + (layer.z3d - layer.z2d) * dimensionMix;
+    }
 
     for (const p of this.platforms) {
       p.prevX = p.x;
@@ -2098,30 +2176,37 @@ class BookWorld {
           if (p.crumbleTimer <= 0) {
             p.crumbleState = 'fallen';
             p.crumbleTimer = 2.4;
+            p.fallAnim = 0;
           }
         } else if (p.crumbleState === 'fallen') {
           p.crumbleTimer -= dt;
+          p.fallAnim = Math.min(1, p.fallAnim + dt * 2.2);
           if (p.crumbleTimer <= 0) {
             p.crumbleState = 'solid';
+            p.fallAnim = 0;
           }
         }
       }
 
       // Sync 3D mesh state
       const isFallen = p.crumbleState === 'fallen';
-      p.mesh.visible = !isFallen;
+      p.mesh.visible = !isFallen || (dimensionMix > 0.25 && p.fallAnim < 0.95);
       p.ghost.visible = isFallen;
 
       const shakeSeed = p.seed + Math.floor(time * 32) * 1.7;
       const shakeX = p.crumbleState === 'shaking' ? hash2(shakeSeed, boilFrame) * 0.06 : 0;
       const shakeY = p.crumbleState === 'shaking' ? hash2(shakeSeed + 5.1, boilFrame) * 0.05 : 0;
-      p.mesh.position.set(p.x + shakeX, p.y + shakeY, 0);
+      const fallY = isFallen ? -p.fallAnim * p.fallAnim * 3.8 : 0;
+      const fallZ = isFallen ? p.fallAnim * 2.4 * dimensionMix : 0;
+      p.mesh.position.set(p.x + shakeX, p.y + shakeY + fallY, fallZ);
+      p.mesh.rotation.x = isFallen ? p.fallAnim * 1.4 * dimensionMix : 0;
+      p.mesh.rotation.z = (p.tilt || 0) + (isFallen ? p.fallAnim * 0.45 : 0);
 
       if (p.bounceAnim > 0) {
         const s = Math.sin(p.bounceAnim * Math.PI) * 0.28;
-        p.mesh.scale.set(1 + s * 0.5, 1 - s, 1 + s * 0.3);
+        p.mesh.scale.set(1 + s * 0.5, 1 - s, zScale * (1 + s * 0.3));
       } else {
-        p.mesh.scale.set(1, 1, 1);
+        p.mesh.scale.set(1, 1, zScale);
       }
 
       const desiredTex = getPlatformTexture(p.style, boilFrame, p.crumbleState === 'shaking');
@@ -2131,11 +2216,16 @@ class BookWorld {
       }
     }
 
+    for (const h of this.hazards) {
+      h.group.scale.set(1, 1, zScale);
+    }
+
     for (const cp of this.checkpoints) {
+      cp.group.scale.set(1, 1, zScale);
       if (cp.activated) {
         cp.flagMat.color.setHex(0x38bdf8);
         cp.finialMat.color.setHex(0x0284c7);
-        cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24;
+        cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24 * dimensionMix;
       }
     }
 
@@ -2144,13 +2234,15 @@ class BookWorld {
       if (!s.collected) {
         s.y = s.baseY + Math.sin(time * 3.2 + s.x) * 0.12;
         s.mesh.position.set(s.x, s.y, 0);
-        s.mesh.rotation.y = time * 1.8 + s.x;
+        s.mesh.scale.set(1, 1, 0.05 + 0.95 * dimensionMix);
+        s.mesh.rotation.y = (time * 1.8 + s.x) * dimensionMix;
         s.mesh.rotation.z = Math.sin(time * 2 + s.x) * 0.12;
       }
     }
 
     if (this.goal && this.goal.mesh) {
-      this.goal.mesh.rotation.y = Math.sin(time * 2.2) * 0.28;
+      this.goal.mesh.scale.set(1, 1, 0.05 + 0.95 * dimensionMix);
+      this.goal.mesh.rotation.y = Math.sin(time * 2.2) * 0.28 * dimensionMix;
       this.goal.mesh.rotation.z = Math.sin(time * 2.5) * 0.06;
     }
 
@@ -2250,6 +2342,17 @@ class PaperclipPlayer {
     this.leftEye.position.set(-0.07, 0.15, 0.07);
     this.rightEye.position.set(0.08, 0.15, 0.07);
     this.group.add(this.leftEye, this.rightEye);
+
+    // 2D boiling-line paperclip sprite for low dimensionMix
+    this.sprite2DMat = new THREE.MeshBasicMaterial({
+      map: getPlayer2DTexture(true, 0),
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    this.sprite2D = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.15), this.sprite2DMat);
+    this.sprite2D.position.z = 0.03;
+    this.sprite2D.visible = false;
+    this.group.add(this.sprite2D);
 
     this.scene.add(this.group);
 
@@ -2691,15 +2794,34 @@ class PaperclipPlayer {
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
   }
 
-  syncVisuals() {
+  syncVisuals(time = 0, dimensionMix = 1) {
     this.group.visible = !this.dead;
     if (this.dead) return;
 
-    this.group.position.set(this.x, this.y, 0);
+    this.group.position.set(this.x, this.y, 0.02);
     const lean = -this.vx * 0.025;
     this.group.rotation.z = lean + this.spinAngle;
-    this.group.rotation.y = this.facing * 0.18 + this.spinAngle * 0.4;
-    this.group.scale.set(this.scaleX, this.scaleY, 1);
+
+    const use2D = dimensionMix < 0.35;
+    this.sprite2D.visible = use2D;
+    this.wireMesh.visible = !use2D;
+    this.leftEye.visible = !use2D;
+    this.rightEye.visible = !use2D;
+
+    if (use2D) {
+      this.group.rotation.y = 0;
+      this.group.scale.set(this.scaleX * this.facing, this.scaleY, 1);
+      const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+      const tex = getPlayer2DTexture(this.canDash, boilFrame);
+      if (this.sprite2DMat.map !== tex) {
+        this.sprite2DMat.map = tex;
+        this.sprite2DMat.needsUpdate = true;
+      }
+      return;
+    }
+
+    this.group.rotation.y = (this.facing * 0.18 + this.spinAngle * 0.4) * dimensionMix;
+    this.group.scale.set(this.scaleX, this.scaleY, 0.15 + 0.85 * dimensionMix);
 
     this.wireMat.color.setHex(this.canDash ? 0x2563eb : 0x64748b);
 
@@ -2797,9 +2919,34 @@ let starsCollected = 0;
 let deaths = 0;
 let runTime = 0;
 let worldTime = 0;
+let dimensionMix = 0;
 let gameStarted = false;
 let gameWon = false;
 let paused = false;
+
+function computeTargetDimension() {
+  if (player.dead) return 0;
+  // Automatic chapter progression:
+  // Ch 1 (0..100): 0.0 -> 0.14 (2D notebook)
+  // Ch 2 (100..200): 0.35 -> 0.58 (2.5D math drafting)
+  // Ch 3 (200..300): 0.68 -> 0.85 (3D lab & glass)
+  // Ch 4 (300..400): 1.0 (Full 3D papercraft finale)
+  const x = Math.max(0, Math.min(400, player.x));
+  let base = 0;
+  if (x < 100) {
+    base = (x / 100) * 0.14;
+  } else if (x < 200) {
+    base = 0.35 + ((x - 100) / 100) * 0.23;
+  } else if (x < 300) {
+    base = 0.68 + ((x - 200) / 100) * 0.17;
+  } else {
+    base = 0.92 + Math.min(1, (x - 300) / 40) * 0.08;
+  }
+
+  // Subtle kinetic pop-out during dash or high-speed bounce
+  const kineticBoost = player.dashTimer > 0 ? 0.32 : Math.abs(player.vy) > 16 ? 0.2 : 0;
+  return Math.min(1, base + kineticBoost);
+}
 
 // Input state
 const keys = new Set();
@@ -2932,6 +3079,7 @@ function resetWorld() {
   deaths = 0;
   runTime = 0;
   worldTime = 0;
+  dimensionMix = 0;
   gameWon = false;
   paused = false;
   pauseOverlay.classList.add('hidden');
@@ -3003,7 +3151,10 @@ function animate(now) {
 
   if (!paused) {
     worldTime += dt;
-    world.update(worldTime, dt);
+    const targetDim = computeTargetDimension();
+    const dimSpeed = player.dead ? 10 : 3.2;
+    dimensionMix += (targetDim - dimensionMix) * Math.min(1, dt * dimSpeed);
+    world.update(worldTime, dt, dimensionMix);
   }
 
   if (gameStarted && !gameWon && !paused) {
@@ -3035,7 +3186,15 @@ function animate(now) {
   jumpJustPressed = false;
   dashJustPressed = false;
 
-  // Smooth 2.5D sidescrolling camera with lookahead & subtle perspective angle
+  // Smooth 2.5D dolly-zoom camera: constant visible height (11.36 units at z = 0)
+  const fov = 10 + 28 * dimensionMix;
+  const camZ = 11.36 / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
+  if (Math.abs(camera.fov - fov) > 0.01) {
+    camera.fov = fov;
+    camera.far = camZ + 50;
+    camera.updateProjectionMatrix();
+  }
+
   const lookAhead = player.facing * 2.4;
   const targetCamX = Math.max(4, Math.min(396, player.x + lookAhead));
   const targetCamY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
@@ -3043,15 +3202,20 @@ function animate(now) {
   camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
   camY += (targetCamY - camY) * Math.min(1, dt * 4.2);
 
-  camera.position.set(camX, camY + 0.35, 16.5);
-  camera.lookAt(camX + player.facing * 0.35, camY, 0);
+  camera.position.set(camX, camY + 0.35 * dimensionMix, camZ);
+  camera.lookAt(camX + player.facing * 0.35 * dimensionMix, camY, 0);
+
+  // Dynamic 2D flat lighting -> 3D desk-lamp shadows
+  dirLight.intensity = 1.35 * dimensionMix;
+  hemiLight.intensity = 1.55 - 0.4 * dimensionMix;
+  renderer.shadowMap.enabled = dimensionMix > 0.05;
 
   // Keep directional shadow frustum centered on camera
   dirLight.position.set(camX + 5, camY + 9, 12);
   dirLight.target.position.set(camX, camY, 0);
   dirLight.target.updateMatrixWorld();
 
-  player.syncVisuals();
+  player.syncVisuals(worldTime, dimensionMix);
   renderer.render(scene, camera);
 }
 

@@ -18,6 +18,7 @@ export class BookWorld {
     this.hazards = [];
     this.stars = [];
     this.checkpoints = [];
+    this.zLayers = [];
     this.goal = null;
     this.motesPoints = null;
     this.moteBaseY = [];
@@ -34,8 +35,9 @@ export class BookWorld {
   loadWorld(worldData) {
     this._clearGroup();
     this.sections = worldData.sections;
+    this.zLayers = [];
 
-    // 1. Chapter Paper Backdrops (z = -1.9)
+    // 1. Chapter Paper Backdrops
     for (const sec of this.sections) {
       const span = sec.endX - sec.startX;
       const geo = new THREE.PlaneGeometry(span, 24);
@@ -50,6 +52,7 @@ export class BookWorld {
       mesh.position.set(sec.startX + span / 2, 0, -1.9);
       mesh.receiveShadow = true;
       this.group.add(mesh);
+      this.zLayers.push({ obj: mesh, z2d: -0.08, z3d: -1.9 });
     }
 
     // 2. Vertical Page-Crease Seams every 24 world units
@@ -64,6 +67,7 @@ export class BookWorld {
       const crease = new THREE.Mesh(creaseGeo, creaseMat);
       crease.position.set(wx, 0, -1.86);
       this.group.add(crease);
+      this.zLayers.push({ obj: crease, z2d: -0.07, z3d: -1.86 });
     }
 
     // 3. Parallax Background Doodles (z = -1.35)
@@ -132,6 +136,11 @@ export class BookWorld {
         const p2 = new THREE.Mesh(pinGeo, railMat);
         p2.position.set(x2, y2, -0.65);
         this.group.add(p1, p2);
+        this.zLayers.push(
+          { obj: rail, z2d: -0.03, z3d: -0.65 },
+          { obj: p1, z2d: -0.03, z3d: -0.65 },
+          { obj: p2, z2d: -0.03, z3d: -0.65 }
+        );
       }
 
       return {
@@ -145,6 +154,7 @@ export class BookWorld {
         crumble: Boolean(p.crumble),
         crumbleState: 'solid',
         crumbleTimer: 0,
+        fallAnim: 0,
         slippery: Boolean(p.slippery),
         seed: 100 + idx * 31.7,
         mesh,
@@ -153,7 +163,7 @@ export class BookWorld {
       };
     });
 
-    // 5. Tutorial & Chapter Signposts (z = -0.75)
+    // 5. Tutorial & Chapter Signposts
     for (const sign of worldData.signs || []) {
       const tex = createSignTexture(sign);
       const geo = new THREE.PlaneGeometry(4.2, 1.85);
@@ -161,6 +171,7 @@ export class BookWorld {
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(sign.x, sign.y, -0.75);
       this.group.add(mesh);
+      this.zLayers.push({ obj: mesh, z2d: -0.04, z3d: -0.75 });
     }
 
     // 6. 3D Ink Spikes (Hazards)
@@ -215,6 +226,7 @@ export class BookWorld {
       cpGroup.add(flag);
 
       this.group.add(cpGroup);
+      this.zLayers.push({ obj: cpGroup, z2d: -0.01, z3d: -0.15 });
       return {
         ...cp,
         activated: false,
@@ -347,12 +359,18 @@ export class BookWorld {
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y, -1.35);
         this.group.add(mesh);
+        this.zLayers.push({ obj: mesh, z2d: -0.05, z3d: -1.35 });
       }
     }
   }
 
-  update(time, dt) {
+  update(time, dt, dimensionMix = 1) {
     const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+    const zScale = 0.02 + 0.98 * dimensionMix;
+
+    for (const layer of this.zLayers) {
+      layer.obj.position.z = layer.z2d + (layer.z3d - layer.z2d) * dimensionMix;
+    }
 
     for (const p of this.platforms) {
       p.prevX = p.x;
@@ -373,30 +391,37 @@ export class BookWorld {
           if (p.crumbleTimer <= 0) {
             p.crumbleState = 'fallen';
             p.crumbleTimer = 2.4;
+            p.fallAnim = 0;
           }
         } else if (p.crumbleState === 'fallen') {
           p.crumbleTimer -= dt;
+          p.fallAnim = Math.min(1, p.fallAnim + dt * 2.2);
           if (p.crumbleTimer <= 0) {
             p.crumbleState = 'solid';
+            p.fallAnim = 0;
           }
         }
       }
 
       // Sync 3D mesh state
       const isFallen = p.crumbleState === 'fallen';
-      p.mesh.visible = !isFallen;
+      p.mesh.visible = !isFallen || (dimensionMix > 0.25 && p.fallAnim < 0.95);
       p.ghost.visible = isFallen;
 
       const shakeSeed = p.seed + Math.floor(time * 32) * 1.7;
       const shakeX = p.crumbleState === 'shaking' ? hash2(shakeSeed, boilFrame) * 0.06 : 0;
       const shakeY = p.crumbleState === 'shaking' ? hash2(shakeSeed + 5.1, boilFrame) * 0.05 : 0;
-      p.mesh.position.set(p.x + shakeX, p.y + shakeY, 0);
+      const fallY = isFallen ? -p.fallAnim * p.fallAnim * 3.8 : 0;
+      const fallZ = isFallen ? p.fallAnim * 2.4 * dimensionMix : 0;
+      p.mesh.position.set(p.x + shakeX, p.y + shakeY + fallY, fallZ);
+      p.mesh.rotation.x = isFallen ? p.fallAnim * 1.4 * dimensionMix : 0;
+      p.mesh.rotation.z = (p.tilt || 0) + (isFallen ? p.fallAnim * 0.45 : 0);
 
       if (p.bounceAnim > 0) {
         const s = Math.sin(p.bounceAnim * Math.PI) * 0.28;
-        p.mesh.scale.set(1 + s * 0.5, 1 - s, 1 + s * 0.3);
+        p.mesh.scale.set(1 + s * 0.5, 1 - s, zScale * (1 + s * 0.3));
       } else {
-        p.mesh.scale.set(1, 1, 1);
+        p.mesh.scale.set(1, 1, zScale);
       }
 
       const desiredTex = getPlatformTexture(p.style, boilFrame, p.crumbleState === 'shaking');
@@ -406,11 +431,16 @@ export class BookWorld {
       }
     }
 
+    for (const h of this.hazards) {
+      h.group.scale.set(1, 1, zScale);
+    }
+
     for (const cp of this.checkpoints) {
+      cp.group.scale.set(1, 1, zScale);
       if (cp.activated) {
         cp.flagMat.color.setHex(0x38bdf8);
         cp.finialMat.color.setHex(0x0284c7);
-        cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24;
+        cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24 * dimensionMix;
       }
     }
 
@@ -419,13 +449,15 @@ export class BookWorld {
       if (!s.collected) {
         s.y = s.baseY + Math.sin(time * 3.2 + s.x) * 0.12;
         s.mesh.position.set(s.x, s.y, 0);
-        s.mesh.rotation.y = time * 1.8 + s.x;
+        s.mesh.scale.set(1, 1, 0.05 + 0.95 * dimensionMix);
+        s.mesh.rotation.y = (time * 1.8 + s.x) * dimensionMix;
         s.mesh.rotation.z = Math.sin(time * 2 + s.x) * 0.12;
       }
     }
 
     if (this.goal && this.goal.mesh) {
-      this.goal.mesh.rotation.y = Math.sin(time * 2.2) * 0.28;
+      this.goal.mesh.scale.set(1, 1, 0.05 + 0.95 * dimensionMix);
+      this.goal.mesh.rotation.y = Math.sin(time * 2.2) * 0.28 * dimensionMix;
       this.goal.mesh.rotation.z = Math.sin(time * 2.5) * 0.06;
     }
 
