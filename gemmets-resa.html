@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gemmets Resa — Handritat 2D-äventyr</title>
+  <title>Gemmets Resa — Handritat 2.5D-äventyr</title>
   <style>
 :root {
   --paper-ice: #eef4fa;
@@ -319,6 +319,13 @@ kbd {
   }
 }
   </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.170.0/build/three.module.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
@@ -418,8 +425,8 @@ kbd {
     </div>
   </div>
 
-  <script>
-(() => {
+  <script type="module">
+import * as THREE from 'three';
 // --- js/audio.js ---
 // Procedural Web Audio API sound effects for tactile paper & wire feedback
 
@@ -1003,6 +1010,423 @@ function sketchText(ctx, text, x, y, seed, boilFrame, opts = {}) {
   ctx.restore();
 }
 
+// --- js/textures3d.js ---
+function makeCanvas(w, h) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  return canvas;
+}
+
+function toTexture(canvas, repeatX = 1, repeatY = 1) {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  if (repeatX !== 1 || repeatY !== 1) {
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(repeatX, repeatY);
+  }
+  return tex;
+}
+function createChapterPaperTexture(theme) {
+  const w = 512;
+  const h = 512;
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+
+  const bgMap = {
+    svenska: '#eef4fa',
+    matte: '#e7f1f6',
+    no: '#e5f3f3',
+    slojd: '#eaedf5',
+  };
+  ctx.fillStyle = bgMap[theme] || '#eaedf5';
+  ctx.fillRect(0, 0, w, h);
+
+  const grain = createPaperGrainPattern(ctx);
+  if (grain) {
+    ctx.fillStyle = grain;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  const step = 32;
+  if (theme === 'svenska') {
+    ctx.strokeStyle = 'rgba(37, 99, 235, 0.22)';
+    ctx.lineWidth = 1.6;
+    for (let y = step; y < h; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+  } else if (theme === 'matte') {
+    ctx.strokeStyle = 'rgba(14, 116, 144, 0.18)';
+    ctx.lineWidth = 1.3;
+    for (let x = 0; x <= w; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= h; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+  } else if (theme === 'no') {
+    ctx.fillStyle = 'rgba(13, 148, 136, 0.28)';
+    for (let x = step / 2; x < w; x += step) {
+      for (let y = step / 2; y < h; y += step) {
+        ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+      }
+    }
+  } else {
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.14)';
+    ctx.lineWidth = 1.5;
+    for (let y = step; y < h; y += step * 2) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+  }
+
+  return toTexture(canvas, 6, 1.5);
+}
+
+const platformTexCache = new Map();
+function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
+  const key = `${style}:${boilFrame}:${shaking ? 1 : 0}`;
+  if (platformTexCache.has(key)) return platformTexCache.get(key);
+
+  const w = 256;
+  const h = 96;
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+  const cx = w / 2;
+  const cy = h / 2;
+  const pad = 6;
+  const bw = w - pad * 2;
+  const bh = h - pad * 2;
+  const seed = 42 + style.length * 13.7;
+
+  ctx.clearRect(0, 0, w, h);
+
+  if (style === 'ruler') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#c4d3e3', shadow: false });
+    const ticks = 16;
+    for (let i = 1; i < ticks; i++) {
+      const tx = pad + (i / ticks) * bw;
+      const th = i % 4 === 0 ? bh * 0.42 : bh * 0.24;
+      sketchLine(ctx, tx, pad, tx, pad + th, seed + i * 3.1, boilFrame, {
+        lineWidth: 2,
+        wobble: 0.9,
+        overshoot: 1,
+        passes: 1,
+      });
+    }
+  } else if (style === 'bookblock') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cbd5e1', shadow: false });
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(pad + 2, pad + 2, 20, bh - 4);
+    sketchLine(ctx, pad + 22, pad, pad + 22, h - pad, seed + 4, boilFrame, {
+      lineWidth: 2,
+      overshoot: 1,
+      passes: 1,
+    });
+    sketchLine(ctx, pad + 32, cy - 8, w - pad - 14, cy - 8, seed + 8, boilFrame, {
+      color: 'rgba(24, 34, 48, 0.25)',
+      lineWidth: 1.8,
+      passes: 1,
+    });
+    sketchLine(ctx, pad + 32, cy + 8, w - pad - 24, cy + 8, seed + 12, boilFrame, {
+      color: 'rgba(24, 34, 48, 0.25)',
+      lineWidth: 1.8,
+      passes: 1,
+    });
+  } else if (style === 'setsquare') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#bae6fd', shadow: false });
+    sketchLine(ctx, w * 0.25, cy, w * 0.75, cy, seed + 5, boilFrame, {
+      color: 'rgba(14, 116, 144, 0.45)',
+      lineWidth: 1.8,
+      passes: 1,
+    });
+    for (let i = 1; i < 12; i++) {
+      const tx = pad + (i / 12) * bw;
+      sketchLine(ctx, tx, h - pad, tx, h - pad - 10, seed + i * 2.1, boilFrame, {
+        lineWidth: 1.6,
+        passes: 1,
+      });
+    }
+  } else if (style === 'mathblock') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e0f2fe', shadow: false });
+    ctx.strokeStyle = 'rgba(14, 116, 144, 0.24)';
+    ctx.lineWidth = 1.4;
+    for (let gx = pad + 24; gx < w - pad; gx += 24) {
+      ctx.beginPath();
+      ctx.moveTo(gx, pad);
+      ctx.lineTo(gx, h - pad);
+      ctx.stroke();
+    }
+    for (let gy = pad + 24; gy < h - pad; gy += 24) {
+      ctx.beginPath();
+      ctx.moveTo(pad, gy);
+      ctx.lineTo(w - pad, gy);
+      ctx.stroke();
+    }
+  } else if (style === 'iceblock') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cffafe', shadow: false });
+    sketchLine(ctx, w * 0.2, h * 0.28, w * 0.34, h * 0.72, seed + 3, boilFrame, {
+      color: '#ffffff',
+      lineWidth: 3.0,
+      passes: 1,
+    });
+    sketchLine(ctx, w * 0.56, h * 0.25, w * 0.72, h * 0.7, seed + 7, boilFrame, {
+      color: '#ffffff',
+      lineWidth: 3.0,
+      passes: 1,
+    });
+  } else if (style === 'springpad') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#a5f3fc', shadow: false });
+    for (let b = -1; b <= 1; b++) {
+      sketchCircle(ctx, cx + b * 55, cy, 10, seed + b * 9, boilFrame, {
+        color: '#0e7490',
+        lineWidth: 2.4,
+        passes: 1,
+      });
+    }
+  } else if (style === 'corkblock') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#cbd5e1', hatch: true, shadow: false });
+  } else if (style === 'woodblock') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#d8e2ec', shadow: false });
+    sketchLine(ctx, pad + 14, cy - 12, w - pad - 14, cy - 8, seed + 3, boilFrame, {
+      color: 'rgba(51, 65, 85, 0.32)',
+      lineWidth: 1.8,
+      passes: 1,
+    });
+    sketchLine(ctx, pad + 18, cy + 12, w - pad - 16, cy + 9, seed + 7, boilFrame, {
+      color: 'rgba(51, 65, 85, 0.32)',
+      lineWidth: 1.8,
+      passes: 1,
+    });
+  } else if (style === 'crumble') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, {
+      fill: shaking ? '#fecdd3' : '#f1f5f9',
+      shadow: false,
+      lineWidth: 2.2,
+    });
+    sketchLine(ctx, cx - 12, pad, cx + 8, h - pad, seed + 19, boilFrame, {
+      color: 'rgba(24, 34, 48, 0.55)',
+      lineWidth: 2.0,
+      passes: 1,
+    });
+  } else if (style === 'eraser') {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#e2ecf5', shadow: false });
+    ctx.fillStyle = '#5b8ec9';
+    ctx.fillRect(w * 0.68, pad + 1, w * 0.32 - pad - 1, bh - 2);
+    sketchLine(ctx, w * 0.68, pad, w * 0.68, h - pad, seed + 9, boilFrame, {
+      lineWidth: 2.5,
+      overshoot: 1.5,
+    });
+  } else if (style.startsWith('postit')) {
+    const colorMap = {
+      'postit-yellow': '#b8e4f9',
+      'postit-pink': '#cbd5f0',
+      'postit-mint': '#b3ebe2',
+    };
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, {
+      fill: colorMap[style] || '#b8e4f9',
+      shadow: false,
+    });
+  } else {
+    sketchRect(ctx, cx, cy, bw, bh, seed, boilFrame, { fill: '#d5e1ee', hatch: true, shadow: false });
+  }
+
+  const tex = toTexture(canvas);
+  platformTexCache.set(key, tex);
+  return tex;
+}
+function createSignTexture(sign) {
+  const w = 360;
+  const h = 160;
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  sketchText(ctx, sign.text, w / 2, 46, 101, 0, {
+    color: 'rgba(24, 34, 48, 0.92)',
+    fontSize: 28,
+    weight: '800',
+    tilt: sign.tilt || 0,
+    underline: true,
+    wobble: 1.0,
+  });
+
+  if (sign.subtext) {
+    sketchText(ctx, sign.subtext, w / 2, 82, 108, 0, {
+      color: 'rgba(51, 65, 85, 0.8)',
+      fontSize: 16,
+      weight: '700',
+      tilt: sign.tilt || 0,
+      wobble: 0.8,
+    });
+  }
+
+  if (sign.arrowTo) {
+    const dx = Math.max(-90, Math.min(90, (sign.arrowTo.x - sign.x) * 26));
+    const dy = Math.max(18, Math.min(54, (sign.y - sign.arrowTo.y) * 24));
+    sketchArrow(ctx, w / 2, 98, w / 2 + dx, 98 + dy, 121, 0, {
+      color: 'rgba(30, 41, 59, 0.8)',
+      lineWidth: 2.6,
+      headSize: 12,
+      curve: sign.curve || 0,
+      wobble: 1.2,
+    });
+  }
+
+  return toTexture(canvas);
+}
+
+const doodleTexCache = new Map();
+function getDoodleTexture(kind, seed = 10) {
+  if (doodleTexCache.has(kind)) return doodleTexCache.get(kind);
+  const w = 160;
+  const h = 160;
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+  const sx = w / 2;
+  const sy = h / 2;
+  const r = 46;
+  const strokeOpts = {
+    color: 'rgba(71, 85, 105, 0.42)',
+    lineWidth: 2.2,
+    wobble: 1.6,
+    overshoot: 1.8,
+    passes: 1,
+  };
+
+  switch (kind) {
+    case 'spiral': {
+      const pts = [];
+      for (let i = 0; i <= 26; i++) {
+        const t = i / 26;
+        const a = t * Math.PI * 4.5;
+        const rad = t * r * 0.95;
+        pts.push({ x: sx + Math.cos(a) * rad, y: sy + Math.sin(a) * rad });
+      }
+      sketchPoly(ctx, pts, false, seed, 0, strokeOpts);
+      break;
+    }
+    case 'paperclip': {
+      const pw = r * 0.48;
+      const ph = r * 0.95;
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - pw * 0.4, y: sy + ph * 0.35 },
+          { x: sx - pw * 0.4, y: sy - ph * 0.65 },
+          { x: sx + pw * 0.45, y: sy - ph * 0.65 },
+          { x: sx + pw * 0.45, y: sy + ph * 0.7 },
+          { x: sx - pw * 0.75, y: sy + ph * 0.7 },
+          { x: sx - pw * 0.75, y: sy - ph * 0.9 },
+          { x: sx + pw * 0.75, y: sy - ph * 0.9 },
+          { x: sx + pw * 0.75, y: sy + ph * 0.25 },
+        ],
+        false,
+        seed,
+        0,
+        strokeOpts
+      );
+      break;
+    }
+    case 'triangle':
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - r * 0.85, y: sy + r * 0.65 },
+          { x: sx + r * 0.85, y: sy + r * 0.65 },
+          { x: sx - r * 0.85, y: sy - r * 0.75 },
+        ],
+        true,
+        seed,
+        0,
+        strokeOpts
+      );
+      break;
+    case 'compass':
+      sketchCircle(ctx, sx, sy - r * 0.85, r * 0.16, seed, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.08, sy - r * 0.7, sx - r * 0.58, sy + r * 0.75, seed + 3, 0, strokeOpts);
+      sketchLine(ctx, sx + r * 0.08, sy - r * 0.7, sx + r * 0.58, sy + r * 0.75, seed + 6, 0, strokeOpts);
+      break;
+    case 'pi':
+      sketchLine(ctx, sx - r * 0.75, sy - r * 0.45, sx + r * 0.75, sy - r * 0.5, seed, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.3, sy - r * 0.47, sx - r * 0.42, sy + r * 0.55, seed + 4, 0, strokeOpts);
+      sketchLine(ctx, sx + r * 0.28, sy - r * 0.48, sx + r * 0.32, sy + r * 0.55, seed + 8, 0, strokeOpts);
+      break;
+    case 'abc':
+      sketchText(ctx, 'A B C', sx, sy, seed, 0, {
+        color: 'rgba(51, 65, 85, 0.42)',
+        fontSize: 24,
+        weight: '800',
+        fontFamily: '"Segoe UI", system-ui, sans-serif',
+      });
+      break;
+    case 'quote':
+      sketchText(ctx, '“...”', sx, sy, seed, 0, {
+        color: 'rgba(51, 65, 85, 0.42)',
+        fontSize: 28,
+        weight: '800',
+        fontFamily: 'Georgia, serif',
+      });
+      break;
+    case 'math_eq':
+      sketchText(ctx, 'x² + y² = r²', sx, sy, seed, 0, {
+        color: 'rgba(14, 116, 144, 0.46)',
+        fontSize: 20,
+        weight: '700',
+        fontFamily: '"Segoe UI", system-ui, sans-serif',
+      });
+      break;
+    case 'flask':
+      sketchPoly(
+        ctx,
+        [
+          { x: sx - r * 0.22, y: sy - r * 0.85 },
+          { x: sx - r * 0.22, y: sy - r * 0.35 },
+          { x: sx - r * 0.72, y: sy + r * 0.65 },
+          { x: sx + r * 0.72, y: sy + r * 0.65 },
+          { x: sx + r * 0.22, y: sy - r * 0.35 },
+          { x: sx + r * 0.22, y: sy - r * 0.85 },
+        ],
+        true,
+        seed,
+        0,
+        strokeOpts
+      );
+      break;
+    case 'atom':
+      sketchCircle(ctx, sx, sy, r * 0.16, seed, 0, strokeOpts);
+      sketchCircle(ctx, sx, sy, r * 0.75, seed + 4, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.9, sy - r * 0.5, sx + r * 0.9, sy + r * 0.5, seed + 8, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.9, sy + r * 0.5, sx + r * 0.9, sy - r * 0.5, seed + 12, 0, strokeOpts);
+      break;
+    case 'scissors':
+      sketchCircle(ctx, sx - r * 0.55, sy - r * 0.35, r * 0.24, seed, 0, strokeOpts);
+      sketchCircle(ctx, sx - r * 0.55, sy + r * 0.35, r * 0.24, seed + 4, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.32, sy - r * 0.22, sx + r * 0.85, sy + r * 0.25, seed + 8, 0, strokeOpts);
+      sketchLine(ctx, sx - r * 0.32, sy + r * 0.22, sx + r * 0.85, sy - r * 0.25, seed + 12, 0, strokeOpts);
+      break;
+    default:
+      sketchArc(ctx, sx, sy, r * 0.65, 0.2, Math.PI * 1.6, seed, 0, strokeOpts);
+      break;
+  }
+
+  const tex = toTexture(canvas);
+  doodleTexCache.set(kind, tex);
+  return tex;
+}
+
 // --- js/levels.js ---
 // Continuous left-to-right sidescrolling book world (X: 0 -> 400)
 // 4 long middle-school subject chapters with steeper difficulty curve
@@ -1308,82 +1732,353 @@ const WORLD_DATA = {
 };
 
 // --- js/book.js ---
-const PPU = 54; // Pixels per world unit
 class BookWorld {
-  constructor() {
+  constructor(scene) {
+    this.scene = scene;
+    this.group = new THREE.Group();
+    this.scene.add(this.group);
+
     this.sections = [];
     this.platforms = [];
     this.hazards = [];
     this.stars = [];
     this.checkpoints = [];
     this.goal = null;
-    this.signs = [];
-    this.doodles = [];
-    this.motes = [];
-    this.paperPattern = null;
-    this.creaseGrad = null;
+    this.motesPoints = null;
+    this.moteBaseY = [];
+    this.motePhases = [];
+  }
+
+  _clearGroup() {
+    while (this.group.children.length > 0) {
+      const child = this.group.children.pop();
+      this.group.remove(child);
+    }
   }
 
   loadWorld(worldData) {
+    this._clearGroup();
     this.sections = worldData.sections;
 
-    this.platforms = worldData.platforms.map((p, idx) => ({
-      ...p,
-      baseX: p.x,
-      baseY: p.y,
-      prevX: p.x,
-      prevY: p.y,
-      bounce: p.bounce || 0,
-      bounceAnim: 0,
-      crumble: Boolean(p.crumble),
-      crumbleState: 'solid',
-      crumbleTimer: 0,
-      slippery: Boolean(p.slippery),
-      seed: 100 + idx * 31.7,
-    }));
-
-    this.hazards = worldData.hazards.map((h, idx) => ({
-      ...h,
-      seed: 900 + idx * 27.3,
-    }));
-
-    this.stars = worldData.stars.map((s, idx) => ({
-      ...s,
-      baseY: s.y,
-      collected: false,
-      seed: 1500 + idx * 19.1,
-    }));
-
-    this.checkpoints = worldData.checkpoints.map((cp, idx) => ({
-      ...cp,
-      activated: false,
-      seed: 2100 + idx * 23.9,
-    }));
-
-    this.goal = { ...worldData.goal, radius: 1.0, seed: 2800 };
-
-    // Tutorial & custom paper signposts
-    this.signs = (worldData.signs || []).map((s, idx) => ({
-      ...s,
-      seed: 4200 + idx * 37.1,
-    }));
-
-    // Section-specific background hand-drawn pencil doodles
-    this.doodles = this._buildSectionDoodles(this.sections);
-
-    // Floating graphite dust motes
-    this.motes = [];
-    for (let i = 0; i < 150; i++) {
-      this.motes.push({
-        x: Math.random() * 420 - 5,
-        y: (Math.random() - 0.5) * 13,
-        phase: Math.random() * Math.PI * 2,
-        r: 1.2 + Math.random() * 1.4,
+    // 1. Chapter Paper Backdrops (z = -1.9)
+    for (const sec of this.sections) {
+      const span = sec.endX - sec.startX;
+      const geo = new THREE.PlaneGeometry(span, 24);
+      const tex = createChapterPaperTexture(sec.theme);
+      tex.repeat.set(Math.max(1, span / 18), 1.6);
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex,
+        roughness: 0.92,
+        metalness: 0.0,
       });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(sec.startX + span / 2, 0, -1.9);
+      mesh.receiveShadow = true;
+      this.group.add(mesh);
+    }
+
+    // 2. Vertical Page-Crease Seams every 24 world units
+    const creaseGeo = new THREE.BoxGeometry(0.06, 24, 0.08);
+    const creaseMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      transparent: true,
+      opacity: 0.22,
+      roughness: 0.9,
+    });
+    for (let wx = 24; wx <= 408; wx += 24) {
+      const crease = new THREE.Mesh(creaseGeo, creaseMat);
+      crease.position.set(wx, 0, -1.86);
+      this.group.add(crease);
+    }
+
+    // 3. Parallax Background Doodles (z = -1.35)
+    this._buildSectionDoodles(this.sections);
+
+    // 4. 3D Papercraft Platforms (z = 0)
+    const sideMatMap = {
+      eraser: 0x93c5fd,
+      springpad: 0x67e8f9,
+      iceblock: 0xa5f3fc,
+      crumble: 0xfecdd3,
+      woodblock: 0xcbd5e1,
+      bookblock: 0x94a3b8,
+    };
+
+    this.platforms = worldData.platforms.map((p, idx) => {
+      const depth = p.h > 2 ? 1.15 : 0.95;
+      const geo = new THREE.BoxGeometry(p.w, p.h, depth);
+      const frontTex = getPlatformTexture(p.style, 0, false);
+      const frontMat = new THREE.MeshStandardMaterial({
+        map: frontTex,
+        roughness: p.slippery ? 0.25 : 0.82,
+        metalness: p.slippery ? 0.08 : 0.02,
+      });
+      const sideMat = new THREE.MeshStandardMaterial({
+        color: sideMatMap[p.style] || 0xb8c7d9,
+        roughness: 0.85,
+      });
+      // BoxGeometry faces: +x, -x, +y, -y, +z (front), -z (back)
+      const mesh = new THREE.Mesh(geo, [sideMat, sideMat, frontMat, sideMat, frontMat, sideMat]);
+      mesh.position.set(p.x, p.y, 0);
+      if (p.tilt) mesh.rotation.z = p.tilt;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.group.add(mesh);
+
+      // Dashed wireframe outline for fallen crumble blocks
+      const edgeGeo = new THREE.EdgesGeometry(geo);
+      const ghost = new THREE.LineSegments(
+        edgeGeo,
+        new THREE.LineBasicMaterial({ color: 0x182230, transparent: true, opacity: 0.28 })
+      );
+      ghost.position.copy(mesh.position);
+      ghost.rotation.copy(mesh.rotation);
+      ghost.visible = false;
+      this.group.add(ghost);
+
+      // Moving platform track pins in background (z = -0.65)
+      if (p.move) {
+        const isX = p.move.axis === 'x';
+        const x1 = isX ? p.x - p.move.range : p.x;
+        const y1 = isX ? p.y : p.y - p.move.range;
+        const x2 = isX ? p.x + p.move.range : p.x;
+        const y2 = isX ? p.y : p.y + p.move.range;
+        const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+        const railGeo = new THREE.CylinderGeometry(0.03, 0.03, len, 6);
+        const railMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8 });
+        const rail = new THREE.Mesh(railGeo, railMat);
+        rail.position.set((x1 + x2) / 2, (y1 + y2) / 2, -0.65);
+        if (isX) rail.rotation.z = Math.PI / 2;
+        this.group.add(rail);
+
+        const pinGeo = new THREE.SphereGeometry(0.09, 10, 10);
+        const p1 = new THREE.Mesh(pinGeo, railMat);
+        p1.position.set(x1, y1, -0.65);
+        const p2 = new THREE.Mesh(pinGeo, railMat);
+        p2.position.set(x2, y2, -0.65);
+        this.group.add(p1, p2);
+      }
+
+      return {
+        ...p,
+        baseX: p.x,
+        baseY: p.y,
+        prevX: p.x,
+        prevY: p.y,
+        bounce: p.bounce || 0,
+        bounceAnim: 0,
+        crumble: Boolean(p.crumble),
+        crumbleState: 'solid',
+        crumbleTimer: 0,
+        slippery: Boolean(p.slippery),
+        seed: 100 + idx * 31.7,
+        mesh,
+        frontMat,
+        ghost,
+      };
+    });
+
+    // 5. Tutorial & Chapter Signposts (z = -0.75)
+    for (const sign of worldData.signs || []) {
+      const tex = createSignTexture(sign);
+      const geo = new THREE.PlaneGeometry(4.2, 1.85);
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(sign.x, sign.y, -0.75);
+      this.group.add(mesh);
+    }
+
+    // 6. 3D Ink Spikes (Hazards)
+    const spikeMat = new THREE.MeshStandardMaterial({ color: 0x182230, roughness: 0.7 });
+    const spikeGeo = new THREE.ConeGeometry(0.16, 0.38, 5);
+    this.hazards = worldData.hazards.map((h, idx) => {
+      const hGroup = new THREE.Group();
+      hGroup.position.set(h.x, h.y, 0);
+
+      const base = new THREE.Mesh(new THREE.BoxGeometry(h.w, h.h, 0.8), spikeMat);
+      base.castShadow = true;
+      base.receiveShadow = true;
+      hGroup.add(base);
+
+      const spikeCount = Math.max(3, Math.floor(h.w / 0.45));
+      for (let i = 0; i < spikeCount; i++) {
+        const t = spikeCount === 1 ? 0 : i / (spikeCount - 1) - 0.5;
+        const spike = new THREE.Mesh(spikeGeo, spikeMat);
+        spike.position.set(t * (h.w - 0.3), h.h / 2 + 0.16, 0);
+        spike.castShadow = true;
+        hGroup.add(spike);
+      }
+
+      this.group.add(hGroup);
+      return { ...h, seed: 900 + idx * 27.3, group: hGroup };
+    });
+
+    // 7. 3D Checkpoints
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x182230, roughness: 0.6 });
+    this.checkpoints = worldData.checkpoints.map((cp, idx) => {
+      const cpGroup = new THREE.Group();
+      cpGroup.position.set(cp.x, cp.y, -0.15);
+
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.35, 8), poleMat);
+      pole.position.y = 0.2;
+      pole.castShadow = true;
+      cpGroup.add(pole);
+
+      const finialMat = new THREE.MeshStandardMaterial({ color: 0x182230, roughness: 0.4 });
+      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 12), finialMat);
+      finial.position.y = 0.9;
+      cpGroup.add(finial);
+
+      const flagMat = new THREE.MeshStandardMaterial({
+        color: 0xcbd5e1,
+        roughness: 0.7,
+        side: THREE.DoubleSide,
+      });
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.38, 0.05), flagMat);
+      flag.position.set(0.35, 0.66, 0);
+      flag.castShadow = true;
+      cpGroup.add(flag);
+
+      this.group.add(cpGroup);
+      return {
+        ...cp,
+        activated: false,
+        seed: 2100 + idx * 23.9,
+        group: cpGroup,
+        flag,
+        flagMat,
+        finialMat,
+      };
+    });
+
+    // 8. 3D Extruded Stars
+    const starShape = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? 0.36 : 0.15;
+      const a = (i * Math.PI) / 5 - Math.PI / 2;
+      const sx = Math.cos(a) * r;
+      const sy = Math.sin(a) * r;
+      if (i === 0) starShape.moveTo(sx, sy);
+      else starShape.lineTo(sx, sy);
+    }
+    starShape.closePath();
+    const starGeo = new THREE.ExtrudeGeometry(starShape, {
+      depth: 0.14,
+      bevelEnabled: true,
+      bevelThickness: 0.03,
+      bevelSize: 0.03,
+      bevelSegments: 2,
+    });
+    starGeo.center();
+
+    this.stars = worldData.stars.map((s, idx) => {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x67e8f9,
+        emissive: 0x0891b2,
+        emissiveIntensity: 0.25,
+        roughness: 0.35,
+      });
+      const mesh = new THREE.Mesh(starGeo, mat);
+      mesh.position.set(s.x, s.y, 0);
+      mesh.castShadow = true;
+      this.group.add(mesh);
+
+      return {
+        ...s,
+        baseY: s.y,
+        collected: false,
+        seed: 1500 + idx * 19.1,
+        mesh,
+      };
+    });
+
+    // 9. 3D Goal Bookmark Ribbon
+    const ribbonShape = new THREE.Shape();
+    ribbonShape.moveTo(-0.38, 0.85);
+    ribbonShape.lineTo(0.38, 0.85);
+    ribbonShape.lineTo(0.38, -0.75);
+    ribbonShape.lineTo(0, -0.35);
+    ribbonShape.lineTo(-0.38, -0.75);
+    ribbonShape.closePath();
+
+    const ribbonGeo = new THREE.ExtrudeGeometry(ribbonShape, {
+      depth: 0.12,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.02,
+      bevelSegments: 1,
+    });
+    ribbonGeo.center();
+    const ribbonMesh = new THREE.Mesh(
+      ribbonGeo,
+      new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.45 })
+    );
+    ribbonMesh.position.set(worldData.goal.x, worldData.goal.y, 0);
+    ribbonMesh.castShadow = true;
+    this.group.add(ribbonMesh);
+
+    this.goal = { ...worldData.goal, radius: 1.0, seed: 2800, mesh: ribbonMesh };
+
+    // 10. 3D Floating Graphite Dust Motes
+    const moteCount = 180;
+    const positions = new Float32Array(moteCount * 3);
+    this.moteBaseY = [];
+    this.motePhases = [];
+    for (let i = 0; i < moteCount; i++) {
+      const x = Math.random() * 420 - 5;
+      const y = (Math.random() - 0.5) * 12;
+      const z = (Math.random() - 0.5) * 2.8;
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+      this.moteBaseY.push(y);
+      this.motePhases.push(Math.random() * Math.PI * 2);
+    }
+    const moteGeo = new THREE.BufferGeometry();
+    moteGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const moteMat = new THREE.PointsMaterial({
+      color: 0x475569,
+      size: 0.075,
+      transparent: true,
+      opacity: 0.35,
+    });
+    this.motesPoints = new THREE.Points(moteGeo, moteMat);
+    this.group.add(this.motesPoints);
+  }
+
+  _buildSectionDoodles(sections) {
+    const themeKinds = {
+      svenska: ['abc', 'quote', 'spiral', 'paperclip'],
+      matte: ['triangle', 'compass', 'pi', 'math_eq'],
+      no: ['flask', 'atom'],
+      slojd: ['scissors', 'spiral'],
+    };
+
+    const geo = new THREE.PlaneGeometry(1.5, 1.5);
+    for (let sIdx = 0; sIdx < sections.length; sIdx++) {
+      const sec = sections[sIdx];
+      const pool = themeKinds[sec.theme] || themeKinds.slojd;
+      const minX = Math.max(sec.startX + 4, 4);
+      const maxX = Math.min(sec.endX - 4, 408);
+      const span = Math.max(10, maxX - minX);
+      const count = Math.max(6, Math.round(span / 7.5));
+
+      for (let i = 0; i < count; i++) {
+        const x = minX + ((i + 0.5) / count) * span;
+        const y = i % 2 === 0 ? 3.2 + (i % 3) * 0.65 : -3.8 - (i % 3) * 0.45;
+        const kind = pool[i % pool.length];
+        const tex = getDoodleTexture(kind, 3300 + sIdx * 211 + i * 41.2);
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, -1.35);
+        this.group.add(mesh);
+      }
     }
   }
 
   update(time, dt) {
+    const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+
     for (const p of this.platforms) {
       p.prevX = p.x;
       p.prevY = p.y;
@@ -1411,1092 +2106,68 @@ class BookWorld {
           }
         }
       }
-    }
 
-    for (const s of this.stars) {
-      if (!s.collected) {
-        s.y = s.baseY + Math.sin(time * 3.2 + s.x) * 0.12;
-      }
-    }
-  }
+      // Sync 3D mesh state
+      const isFallen = p.crumbleState === 'fallen';
+      p.mesh.visible = !isFallen;
+      p.ghost.visible = isFallen;
 
-  draw(ctx, camX, camY, viewW, viewH, time) {
-    if (!this.paperPattern) {
-      this.paperPattern = createPaperGrainPattern(ctx);
-    }
-
-    const boilFrame = Math.floor(time * BOIL_FPS) % 3;
-
-    // 1. Paper section backgrounds
-    const leftWorldX = camX - viewW / (2 * PPU) - 1;
-    const rightWorldX = camX + viewW / (2 * PPU) + 1;
-    const topWorldY = camY + viewH / (2 * PPU) + 1;
-    const bottomWorldY = camY - viewH / (2 * PPU) - 1;
-
-    ctx.save();
-    // World transform: center of screen is (camX, camY), +Y is UP
-    ctx.translate(viewW / 2, viewH / 2);
-    ctx.scale(PPU, -PPU);
-    ctx.translate(-camX, -camY);
-
-    // Draw section paper fills
-    for (const sec of this.sections) {
-      if (sec.endX < leftWorldX || sec.startX > rightWorldX) continue;
-      const sx = Math.max(sec.startX, leftWorldX);
-      const ex = Math.min(sec.endX, rightWorldX);
-      const bgMap = {
-        svenska: '#eef4fa',
-        matte: '#e7f1f6',
-        no: '#e5f3f3',
-        slojd: '#eaedf5',
-      };
-      ctx.fillStyle = bgMap[sec.theme] || '#eaedf5';
-      ctx.fillRect(sx, bottomWorldY, ex - sx, topWorldY - bottomWorldY);
-    }
-
-    ctx.restore();
-
-    // Overlay paper fiber grain in screen space
-    if (this.paperPattern) {
-      ctx.save();
-      ctx.fillStyle = this.paperPattern;
-      ctx.fillRect(0, 0, viewW, viewH);
-      ctx.restore();
-    }
-
-    // Helper: world -> screen coords
-    const toSX = (wx) => viewW / 2 + (wx - camX) * PPU;
-    const toSY = (wy) => viewH / 2 - (wy - camY) * PPU;
-
-    // 2. Draw paper lines / grids / page creases in screen space for crisp 1px-2px strokes
-    this._drawPaperMarkings(ctx, leftWorldX, rightWorldX, topWorldY, bottomWorldY, toSX, toSY, viewH, boilFrame);
-
-    // 3. Section-specific background boiling pencil doodles
-    for (const d of this.doodles) {
-      if (d.x < leftWorldX - 3 || d.x > rightWorldX + 3) continue;
-      this._drawDoodle(ctx, d, toSX, toSY, boilFrame);
-    }
-
-    // 4. Platforms (+ moving platform tracks, highlights, motion lines & optional labels)
-    for (const p of this.platforms) {
-      if (p.move) {
-        const minX = p.move.axis === 'x' ? p.baseX - p.move.range : p.x;
-        const maxX = p.move.axis === 'x' ? p.baseX + p.move.range : p.x;
-        if (maxX + p.w / 2 >= leftWorldX && minX - p.w / 2 <= rightWorldX) {
-          this._drawMovingPlatformTrack(ctx, p, toSX, toSY, boilFrame);
-        }
-      }
-
-      if (p.x + p.w / 2 < leftWorldX || p.x - p.w / 2 > rightWorldX) continue;
-      const sx = toSX(p.x);
-      const sy = toSY(p.y);
-      const pw = p.w * PPU;
-      const ph = p.h * PPU;
-
-      ctx.save();
       const shakeSeed = p.seed + Math.floor(time * 32) * 1.7;
-      const shakeX = p.crumbleState === 'shaking' ? hash2(shakeSeed, boilFrame) * 3.2 : 0;
-      const shakeY = p.crumbleState === 'shaking' ? hash2(shakeSeed + 5.1, boilFrame) * 2.6 : 0;
-      ctx.translate(sx + shakeX, sy + shakeY);
-      if (p.tilt) ctx.rotate(-p.tilt);
+      const shakeX = p.crumbleState === 'shaking' ? hash2(shakeSeed, boilFrame) * 0.06 : 0;
+      const shakeY = p.crumbleState === 'shaking' ? hash2(shakeSeed + 5.1, boilFrame) * 0.05 : 0;
+      p.mesh.position.set(p.x + shakeX, p.y + shakeY, 0);
+
       if (p.bounceAnim > 0) {
         const s = Math.sin(p.bounceAnim * Math.PI) * 0.28;
-        ctx.scale(1 + s * 0.5, 1 - s);
-      }
-
-      if (p.crumbleState === 'fallen') {
-        // Faint dashed outline showing where the block will respawn
-        ctx.save();
-        ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = 'rgba(24, 34, 48, 0.25)';
-        ctx.lineWidth = 1.6;
-        ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
-        ctx.restore();
-      } else if (p.style === 'ruler') {
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#c4d3e3', hatch: false });
-        const tickCount = Math.floor(p.w * 2.5);
-        for (let i = 1; i < tickCount; i++) {
-          const tx = -pw / 2 + (i / tickCount) * pw;
-          const th = i % 4 === 0 ? ph * 0.42 : ph * 0.24;
-          sketchLine(ctx, tx, -ph / 2, tx, -ph / 2 + th, p.seed + i * 3.1, boilFrame, {
-            lineWidth: 1.5,
-            wobble: 0.9,
-            overshoot: 1,
-            passes: 1,
-          });
-        }
-      } else if (p.style === 'bookblock') {
-        // Svenska: textbook with spine & page lines
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#cbd5e1', hatch: false });
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(-pw / 2 + 2, -ph / 2 + 2, 12, ph - 4);
-        sketchLine(ctx, -pw / 2 + 14, -ph / 2, -pw / 2 + 14, ph / 2, p.seed + 4, boilFrame, {
-          lineWidth: 1.6,
-          overshoot: 1,
-          passes: 1,
-        });
-        sketchLine(ctx, -pw / 2 + 20, -2, pw / 2 - 8, -2, p.seed + 8, boilFrame, {
-          color: 'rgba(24, 34, 48, 0.25)',
-          lineWidth: 1.2,
-          passes: 1,
-        });
-        sketchLine(ctx, -pw / 2 + 20, 4, pw / 2 - 14, 4, p.seed + 12, boilFrame, {
-          color: 'rgba(24, 34, 48, 0.25)',
-          lineWidth: 1.2,
-          passes: 1,
-        });
-      } else if (p.style === 'setsquare') {
-        // Matematik: drafting set-square with inner cutout & ticks
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#bae6fd', hatch: false });
-        if (pw > 60 && ph > 22) {
-          sketchLine(ctx, -pw * 0.25, 0, pw * 0.25, 0, p.seed + 5, boilFrame, {
-            color: 'rgba(14, 116, 144, 0.45)',
-            lineWidth: 1.4,
-            passes: 1,
-          });
-        }
-        for (let i = 1; i < Math.floor(p.w * 2); i++) {
-          const tx = -pw / 2 + (i / (p.w * 2)) * pw;
-          sketchLine(ctx, tx, ph / 2, tx, ph / 2 - 6, p.seed + i * 2.1, boilFrame, {
-            lineWidth: 1.2,
-            passes: 1,
-          });
-        }
-      } else if (p.style === 'mathblock') {
-        // Matematik: grid block
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#e0f2fe', hatch: false });
-        ctx.save();
-        ctx.strokeStyle = 'rgba(14, 116, 144, 0.24)';
-        ctx.lineWidth = 1;
-        for (let gx = -pw / 2 + 14; gx < pw / 2; gx += 14) {
-          ctx.beginPath();
-          ctx.moveTo(gx, -ph / 2);
-          ctx.lineTo(gx, ph / 2);
-          ctx.stroke();
-        }
-        for (let gy = -ph / 2 + 14; gy < ph / 2; gy += 14) {
-          ctx.beginPath();
-          ctx.moveTo(-pw / 2, gy);
-          ctx.lineTo(pw / 2, gy);
-          ctx.stroke();
-        }
-        ctx.restore();
-      } else if (p.style === 'iceblock') {
-        // NO & Labb: slippery glass/ice block with frost sheen
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#cffafe', hatch: false });
-        sketchLine(ctx, -pw * 0.35, -ph * 0.2, -pw * 0.15, ph * 0.25, p.seed + 3, boilFrame, {
-          color: '#ffffff',
-          lineWidth: 2.2,
-          passes: 1,
-        });
-        sketchLine(ctx, pw * 0.05, -ph * 0.25, pw * 0.25, ph * 0.2, p.seed + 7, boilFrame, {
-          color: '#ffffff',
-          lineWidth: 2.2,
-          passes: 1,
-        });
-      } else if (p.style === 'springpad') {
-        // NO & Labb: bubbling high-bounce lab pad
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#a5f3fc', hatch: false });
-        for (let b = -1; b <= 1; b++) {
-          sketchCircle(ctx, b * (pw * 0.22), 0, 4.5, p.seed + b * 9, boilFrame, {
-            color: '#0e7490',
-            lineWidth: 1.6,
-            passes: 1,
-          });
-        }
-      } else if (p.style === 'corkblock') {
-        // NO & Labb: speckled corkboard block
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#cbd5e1', hatch: true });
-      } else if (p.style === 'woodblock') {
-        // Slöjd & Bild: carpenter wood plank with grain & nail dots
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#d8e2ec', hatch: false });
-        sketchLine(ctx, -pw / 2 + 8, -ph * 0.15, pw / 2 - 8, -ph * 0.1, p.seed + 3, boilFrame, {
-          color: 'rgba(51, 65, 85, 0.3)',
-          lineWidth: 1.3,
-          passes: 1,
-        });
-        sketchLine(ctx, -pw / 2 + 12, ph * 0.18, pw / 2 - 10, ph * 0.14, p.seed + 7, boilFrame, {
-          color: 'rgba(51, 65, 85, 0.3)',
-          lineWidth: 1.3,
-          passes: 1,
-        });
-      } else if (p.style === 'crumble') {
-        // Slöjd & Bild: fragile crumbling paper block
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, {
-          fill: p.crumbleState === 'shaking' ? '#fecdd3' : '#f1f5f9',
-          hatch: false,
-          lineWidth: 1.8,
-        });
-        // Crack line in middle
-        sketchLine(ctx, -6, -ph / 2, 4, ph / 2, p.seed + 19, boilFrame, {
-          color: 'rgba(24, 34, 48, 0.5)',
-          lineWidth: 1.4,
-          passes: 1,
-        });
-      } else if (p.style === 'eraser') {
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#e2ecf5', hatch: false });
-        ctx.fillStyle = '#5b8ec9';
-        ctx.fillRect(pw * 0.18, -ph / 2 + 1, pw * 0.32 - 1, ph - 2);
-        sketchLine(ctx, pw * 0.18, -ph / 2, pw * 0.18, ph / 2, p.seed + 9, boilFrame, {
-          lineWidth: 2,
-          overshoot: 1.5,
-        });
-      } else if (p.style.startsWith('postit')) {
-        const colorMap = {
-          'postit-yellow': '#b8e4f9',
-          'postit-pink': '#cbd5f0',
-          'postit-mint': '#b3ebe2',
-        };
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, {
-          fill: colorMap[p.style] || '#b8e4f9',
-          hatch: false,
-        });
+        p.mesh.scale.set(1 + s * 0.5, 1 - s, 1 + s * 0.3);
       } else {
-        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#d5e1ee', hatch: true });
+        p.mesh.scale.set(1, 1, 1);
       }
 
-      if (p.move) {
-        this._drawMovingPlatformEffects(ctx, p, pw, ph, time, boilFrame);
-      }
-      ctx.restore();
-
-      if (p.label) {
-        this._drawPlatformLabel(ctx, p, sx, sy, ph, boilFrame);
+      const desiredTex = getPlatformTexture(p.style, boilFrame, p.crumbleState === 'shaking');
+      if (p.frontMat.map !== desiredTex) {
+        p.frontMat.map = desiredTex;
+        p.frontMat.needsUpdate = true;
       }
     }
 
-    // 4b. Paper tutorial & world signposts
-    for (const sign of this.signs) {
-      if (sign.x < leftWorldX - 4 || sign.x > rightWorldX + 4) continue;
-      this._drawSign(ctx, sign, toSX, toSY, boilFrame);
-    }
-
-    // 5. Hazards (sketchy ink spikes)
-    for (const h of this.hazards) {
-      if (h.x + h.w / 2 < leftWorldX || h.x - h.w / 2 > rightWorldX) continue;
-      const sx = toSX(h.x);
-      const sy = toSY(h.y);
-      const hw = h.w * PPU;
-      const hh = h.h * PPU;
-
-      sketchRect(ctx, sx, sy, hw, hh, h.seed, boilFrame, {
-        fill: '#182230',
-        shadow: false,
-        lineWidth: 2,
-      });
-
-      const spikeCount = Math.max(3, Math.floor(h.w / 0.45));
-      for (let i = 0; i < spikeCount; i++) {
-        const t = spikeCount === 1 ? 0 : i / (spikeCount - 1) - 0.5;
-        const cx = sx + t * (hw - 16);
-        const by = sy - hh / 2;
-        const ty = by - 14;
-        ctx.fillStyle = '#182230';
-        ctx.beginPath();
-        ctx.moveTo(cx - 7, by);
-        ctx.lineTo(cx, ty);
-        ctx.lineTo(cx + 7, by);
-        ctx.closePath();
-        ctx.fill();
-        sketchPoly(
-          ctx,
-          [
-            { x: cx - 7, y: by },
-            { x: cx, y: ty },
-            { x: cx + 7, y: by },
-          ],
-          false,
-          h.seed + i * 7.3,
-          boilFrame,
-          { lineWidth: 2, wobble: 1.6, overshoot: 2 }
-        );
-      }
-    }
-
-    // 6. Checkpoints (sketchy pin flags with crisp highlights & flutter lines)
     for (const cp of this.checkpoints) {
-      if (cp.x < leftWorldX - 2 || cp.x > rightWorldX + 2) continue;
-      this._drawCheckpoint(ctx, cp, toSX, toSY, time, boilFrame);
+      if (cp.activated) {
+        cp.flagMat.color.setHex(0x38bdf8);
+        cp.finialMat.color.setHex(0x0284c7);
+        cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24;
+      }
     }
 
-    // 7. Stars
     for (const s of this.stars) {
-      if (s.collected || s.x < leftWorldX - 1 || s.x > rightWorldX + 1) continue;
-      const sx = toSX(s.x);
-      const sy = toSY(s.y);
-      const pts = [];
-      for (let i = 0; i < 10; i++) {
-        const r = (i % 2 === 0 ? 0.38 : 0.16) * PPU;
-        const angle = (i * Math.PI) / 5 - Math.PI / 2 + Math.sin(time * 2 + s.x) * 0.12;
-        pts.push({ x: sx + Math.cos(angle) * r, y: sy + Math.sin(angle) * r });
-      }
-      ctx.save();
-      ctx.fillStyle = 'rgba(24, 34, 48, 0.14)';
-      ctx.beginPath();
-      pts.forEach((p, idx) => (idx === 0 ? ctx.moveTo(p.x + 4, p.y + 5) : ctx.lineTo(p.x + 4, p.y + 5)));
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#67e8f9';
-      ctx.beginPath();
-      pts.forEach((p, idx) => (idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      sketchPoly(ctx, pts, true, s.seed, boilFrame, { lineWidth: 2.1, wobble: 1.7, overshoot: 2 });
-    }
-
-    // 8. Goal Bookmark Ribbon
-    if (this.goal && this.goal.x > leftWorldX - 2 && this.goal.x < rightWorldX + 2) {
-      const sx = toSX(this.goal.x);
-      const sy = toSY(this.goal.y);
-      const sway = Math.sin(time * 2.5) * 4;
-      const pts = [
-        { x: sx - 20, y: sy - 44 },
-        { x: sx + 20, y: sy - 44 },
-        { x: sx + 20 + sway, y: sy + 38 },
-        { x: sx + sway, y: sy + 18 },
-        { x: sx - 20 + sway, y: sy + 38 },
-      ];
-      ctx.save();
-      ctx.fillStyle = 'rgba(24, 34, 48, 0.16)';
-      ctx.beginPath();
-      pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x + 5, p.y + 6) : ctx.lineTo(p.x + 5, p.y + 6)));
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#2563eb';
-      ctx.beginPath();
-      pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      sketchPoly(ctx, pts, true, this.goal.seed, boilFrame, { lineWidth: 2.4, wobble: 1.8 });
-    }
-
-    // 9. Floating graphite dust motes
-    ctx.save();
-    ctx.fillStyle = 'rgba(71, 85, 105, 0.25)';
-    for (const m of this.motes) {
-      if (m.x < leftWorldX || m.x > rightWorldX) continue;
-      const sx = toSX(m.x);
-      const sy = toSY(m.y + Math.sin(time * 0.8 + m.phase) * 0.25);
-      ctx.beginPath();
-      ctx.arc(sx, sy, m.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  _drawPaperMarkings(ctx, leftWX, rightWX, topWY, bottomWY, toSX, toSY, viewH, boilFrame) {
-    ctx.save();
-    for (const sec of this.sections) {
-      if (sec.endX < leftWX || sec.startX > rightWX) continue;
-      const sx1 = Math.max(0, toSX(sec.startX));
-      const sx2 = toSX(sec.endX);
-
-      if (sec.theme === 'svenska') {
-        ctx.strokeStyle = 'rgba(37, 99, 235, 0.2)';
-        ctx.lineWidth = 1.4;
-        const startY = Math.floor(bottomWY);
-        for (let wy = startY; wy <= topWY; wy += 1.0) {
-          const sy = toSY(wy) + hash2(wy * 7.1, boilFrame) * 0.8;
-          ctx.beginPath();
-          ctx.moveTo(sx1, sy);
-          ctx.lineTo(sx2, sy);
-          ctx.stroke();
-        }
-      } else if (sec.theme === 'matte') {
-        ctx.strokeStyle = 'rgba(14, 116, 144, 0.16)';
-        ctx.lineWidth = 1.1;
-        const startX = Math.max(sec.startX, Math.floor(leftWX));
-        for (let wx = startX; wx <= Math.min(sec.endX, rightWX); wx += 1.0) {
-          const sx = toSX(wx) + hash2(wx * 5.3, boilFrame) * 0.6;
-          ctx.beginPath();
-          ctx.moveTo(sx, 0);
-          ctx.lineTo(sx, viewH);
-          ctx.stroke();
-        }
-        for (let wy = Math.floor(bottomWY); wy <= topWY; wy += 1.0) {
-          const sy = toSY(wy) + hash2(wy * 5.3, boilFrame) * 0.6;
-          ctx.beginPath();
-          ctx.moveTo(sx1, sy);
-          ctx.lineTo(sx2, sy);
-          ctx.stroke();
-        }
-      } else if (sec.theme === 'no') {
-        // Dotted lab notebook grid
-        ctx.fillStyle = 'rgba(13, 148, 136, 0.25)';
-        const startX = Math.max(sec.startX, Math.floor(leftWX));
-        for (let wx = startX; wx <= Math.min(sec.endX, rightWX); wx += 1.0) {
-          const sx = toSX(wx);
-          for (let wy = Math.floor(bottomWY); wy <= topWY; wy += 1.0) {
-            const sy = toSY(wy);
-            ctx.fillRect(sx - 1, sy - 1, 2, 2);
-          }
-        }
-      } else {
-        // Sketchbook wide guide lines
-        ctx.strokeStyle = 'rgba(51, 65, 85, 0.12)';
-        ctx.lineWidth = 1.3;
-        for (let wy = Math.floor(bottomWY / 2) * 2; wy <= topWY; wy += 2.0) {
-          const sy = toSY(wy) + hash2(wy * 3.7, boilFrame) * 0.8;
-          ctx.beginPath();
-          ctx.moveTo(sx1, sy);
-          ctx.lineTo(sx2, sy);
-          ctx.stroke();
-        }
+      s.mesh.visible = !s.collected;
+      if (!s.collected) {
+        s.y = s.baseY + Math.sin(time * 3.2 + s.x) * 0.12;
+        s.mesh.position.set(s.x, s.y, 0);
+        s.mesh.rotation.y = time * 1.8 + s.x;
+        s.mesh.rotation.z = Math.sin(time * 2 + s.x) * 0.12;
       }
     }
 
-    // Vertical page-crease seams every 24 world units
-    if (!this.creaseGrad) {
-      const grad = ctx.createLinearGradient(-18, 0, 18, 0);
-      grad.addColorStop(0, 'rgba(15, 23, 42, 0)');
-      grad.addColorStop(0.5, 'rgba(15, 23, 42, 0.08)');
-      grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
-      this.creaseGrad = grad;
+    if (this.goal && this.goal.mesh) {
+      this.goal.mesh.rotation.y = Math.sin(time * 2.2) * 0.28;
+      this.goal.mesh.rotation.z = Math.sin(time * 2.5) * 0.06;
     }
 
-    for (let wx = 24; wx <= 408; wx += 24) {
-      if (wx < leftWX || wx > rightWX) continue;
-      const sx = toSX(wx);
-      ctx.save();
-      ctx.translate(sx, 0);
-      ctx.fillStyle = this.creaseGrad;
-      ctx.fillRect(-18, 0, 36, viewH);
-      ctx.restore();
-
-      sketchLine(ctx, sx, 0, sx, viewH, wx * 13, boilFrame, {
-        color: 'rgba(51, 65, 85, 0.25)',
-        lineWidth: 1.5,
-        wobble: 1.5,
-        passes: 1,
-      });
-    }
-    ctx.restore();
-  }
-
-  _buildSectionDoodles(sections) {
-    const doodles = [];
-    const themeKinds = {
-      svenska: ['abc', 'pencil', 'book', 'quote', 'spiral', 'paperclip', 'squiggle'],
-      matte: ['triangle', 'compass', 'pi', 'math_eq', 'protractor', 'cube'],
-      no: ['flask', 'atom', 'dna', 'leaf', 'magnet'],
-      slojd: ['scissors', 'hammer', 'brush', 'saw', 'plane', 'mountains'],
-    };
-
-    for (let sIdx = 0; sIdx < sections.length; sIdx++) {
-      const sec = sections[sIdx];
-      const pool = themeKinds[sec.theme] || themeKinds.slojd;
-      const minX = Math.max(sec.startX + 4, 4);
-      const maxX = Math.min(sec.endX - 4, 408);
-      const span = Math.max(10, maxX - minX);
-      const count = Math.max(6, Math.round(span / 6.2));
-
-      for (let i = 0; i < count; i++) {
-        const x = minX + ((i + 0.5) / count) * span;
-        const y = i % 2 === 0 ? 3.2 + (i % 3) * 0.65 : -3.8 - (i % 3) * 0.45;
-        doodles.push({
-          x,
-          y,
-          kind: pool[i % pool.length],
-          seed: 3300 + sIdx * 211 + i * 41.2,
-        });
+    if (this.motesPoints) {
+      const posAttr = this.motesPoints.geometry.getAttribute('position');
+      for (let i = 0; i < this.moteBaseY.length; i++) {
+        posAttr.setY(i, this.moteBaseY[i] + Math.sin(time * 0.8 + this.motePhases[i]) * 0.25);
       }
-    }
-    return doodles;
-  }
-
-  _drawDoodle(ctx, d, toSX, toSY, boilFrame) {
-    const sx = toSX(d.x);
-    const sy = toSY(d.y);
-    const r = 0.65 * PPU;
-    const strokeOpts = {
-      color: 'rgba(71, 85, 105, 0.32)',
-      lineWidth: 1.7,
-      wobble: 1.8,
-      overshoot: 1.8,
-      passes: 1,
-    };
-
-    switch (d.kind) {
-      case 'spiral': {
-        const pts = [];
-        const steps = 26;
-        for (let i = 0; i <= steps; i++) {
-          const t = i / steps;
-          const a = t * Math.PI * 4.5;
-          const rad = t * r * 0.95;
-          pts.push({ x: sx + Math.cos(a) * rad, y: sy + Math.sin(a) * rad });
-        }
-        sketchPoly(ctx, pts, false, d.seed, boilFrame, strokeOpts);
-        break;
-      }
-      case 'paperclip': {
-        const w = r * 0.48;
-        const h = r * 0.95;
-        const pts = [
-          { x: sx - w * 0.4, y: sy + h * 0.35 },
-          { x: sx - w * 0.4, y: sy - h * 0.65 },
-          { x: sx + w * 0.45, y: sy - h * 0.65 },
-          { x: sx + w * 0.45, y: sy + h * 0.7 },
-          { x: sx - w * 0.75, y: sy + h * 0.7 },
-          { x: sx - w * 0.75, y: sy - h * 0.9 },
-          { x: sx + w * 0.75, y: sy - h * 0.9 },
-          { x: sx + w * 0.75, y: sy + h * 0.25 },
-        ];
-        sketchPoly(ctx, pts, false, d.seed, boilFrame, strokeOpts);
-        break;
-      }
-      case 'squiggle': {
-        const pts = [];
-        for (let i = 0; i <= 12; i++) {
-          const t = i / 12 - 0.5;
-          pts.push({
-            x: sx + t * r * 2.1,
-            y: sy + Math.sin(i * 1.4) * r * 0.38,
-          });
-        }
-        sketchPoly(ctx, pts, false, d.seed, boilFrame, strokeOpts);
-        break;
-      }
-      case 'triangle': {
-        // Right triangle with right-angle square & angle arc
-        const ax = sx - r * 0.85;
-        const ay = sy + r * 0.65;
-        const bx = sx + r * 0.85;
-        const by = sy + r * 0.65;
-        const cx = sx - r * 0.85;
-        const cy = sy - r * 0.75;
-        sketchPoly(ctx, [{ x: ax, y: ay }, { x: bx, y: by }, { x: cx, y: cy }], true, d.seed, boilFrame, strokeOpts);
-        const sq = r * 0.28;
-        sketchPoly(
-          ctx,
-          [{ x: ax, y: ay - sq }, { x: ax + sq, y: ay - sq }, { x: ax + sq, y: ay }],
-          false,
-          d.seed + 7,
-          boilFrame,
-          strokeOpts
-        );
-        sketchArc(ctx, bx, by, r * 0.42, Math.PI, Math.PI + 0.68, d.seed + 13, boilFrame, {
-          ...strokeOpts,
-          segments: 6,
-        });
-        break;
-      }
-      case 'compass': {
-        // Drafting compass with head, legs & dashed arc
-        const topY = sy - r * 0.95;
-        sketchCircle(ctx, sx, topY, r * 0.16, d.seed, boilFrame, { ...strokeOpts, segments: 10 });
-        sketchLine(ctx, sx - r * 0.08, topY + r * 0.14, sx - r * 0.58, sy + r * 0.75, d.seed + 3, boilFrame, strokeOpts);
-        sketchLine(ctx, sx + r * 0.08, topY + r * 0.14, sx + r * 0.58, sy + r * 0.75, d.seed + 6, boilFrame, strokeOpts);
-        sketchArc(ctx, sx - r * 0.58, sy + r * 0.75, r * 1.15, -0.5, 0.25, d.seed + 11, boilFrame, {
-          ...strokeOpts,
-          segments: 8,
-        });
-        break;
-      }
-      case 'pi': {
-        // Hand-drawn pi symbol & small reference circle
-        sketchLine(ctx, sx - r * 0.75, sy - r * 0.45, sx + r * 0.75, sy - r * 0.5, d.seed, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.3, sy - r * 0.47, sx - r * 0.42, sy + r * 0.55, d.seed + 4, boilFrame, strokeOpts);
-        sketchLine(ctx, sx + r * 0.28, sy - r * 0.48, sx + r * 0.32, sy + r * 0.55, d.seed + 8, boilFrame, strokeOpts);
-        sketchCircle(ctx, sx + r * 1.1, sy - r * 0.1, r * 0.32, d.seed + 14, boilFrame, {
-          ...strokeOpts,
-          segments: 12,
-        });
-        break;
-      }
-      case 'plane': {
-        // Folded paper airplane with trailing flight dashes
-        const pts = [
-          { x: sx - r * 0.9, y: sy + r * 0.1 },
-          { x: sx + r * 0.95, y: sy - r * 0.35 },
-          { x: sx - r * 0.45, y: sy + r * 0.65 },
-        ];
-        sketchPoly(ctx, pts, true, d.seed, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.25, sy + r * 0.28, sx + r * 0.95, sy - r * 0.35, d.seed + 5, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 1.65, sy + r * 0.42, sx - r * 1.15, sy + r * 0.22, d.seed + 9, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 2.25, sy + r * 0.58, sx - r * 1.85, sy + r * 0.48, d.seed + 12, boilFrame, strokeOpts);
-        break;
-      }
-      case 'mountains': {
-        // Layered sketchy mountain peaks & small sun
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - r * 1.25, y: sy + r * 0.65 },
-            { x: sx - r * 0.35, y: sy - r * 0.7 },
-            { x: sx + r * 0.45, y: sy + r * 0.65 },
-          ],
-          false,
-          d.seed,
-          boilFrame,
-          strokeOpts
-        );
-        sketchPoly(
-          ctx,
-          [
-            { x: sx + r * 0.05, y: sy + r * 0.25 },
-            { x: sx + r * 0.65, y: sy - r * 0.55 },
-            { x: sx + r * 1.3, y: sy + r * 0.65 },
-          ],
-          false,
-          d.seed + 6,
-          boilFrame,
-          strokeOpts
-        );
-        sketchCircle(ctx, sx + r * 0.95, sy - r * 0.85, r * 0.24, d.seed + 11, boilFrame, {
-          ...strokeOpts,
-          segments: 10,
-        });
-        break;
-      }
-      case 'flask': {
-        // Chemistry Erlenmeyer flask
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - r * 0.22, y: sy - r * 0.85 },
-            { x: sx - r * 0.22, y: sy - r * 0.35 },
-            { x: sx - r * 0.72, y: sy + r * 0.65 },
-            { x: sx + r * 0.72, y: sy + r * 0.65 },
-            { x: sx + r * 0.22, y: sy - r * 0.35 },
-            { x: sx + r * 0.22, y: sy - r * 0.85 },
-          ],
-          true,
-          d.seed,
-          boilFrame,
-          strokeOpts
-        );
-        sketchCircle(ctx, sx - r * 0.15, sy + r * 0.25, r * 0.12, d.seed + 5, boilFrame, strokeOpts);
-        sketchCircle(ctx, sx + r * 0.18, sy + r * 0.35, r * 0.09, d.seed + 9, boilFrame, strokeOpts);
-        break;
-      }
-      case 'atom': {
-        // Science atom orbits
-        sketchCircle(ctx, sx, sy, r * 0.16, d.seed, boilFrame, strokeOpts);
-        sketchCircle(ctx, sx, sy, r * 0.75, d.seed + 4, boilFrame, { ...strokeOpts, segments: 16 });
-        sketchLine(ctx, sx - r * 0.9, sy - r * 0.5, sx + r * 0.9, sy + r * 0.5, d.seed + 8, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.9, sy + r * 0.5, sx + r * 0.9, sy - r * 0.5, d.seed + 12, boilFrame, strokeOpts);
-        break;
-      }
-      case 'scissors': {
-        // Craft scissors
-        sketchCircle(ctx, sx - r * 0.55, sy - r * 0.35, r * 0.24, d.seed, boilFrame, strokeOpts);
-        sketchCircle(ctx, sx - r * 0.55, sy + r * 0.35, r * 0.24, d.seed + 4, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.32, sy - r * 0.22, sx + r * 0.85, sy + r * 0.25, d.seed + 8, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.32, sy + r * 0.22, sx + r * 0.85, sy - r * 0.25, d.seed + 12, boilFrame, strokeOpts);
-        break;
-      }
-      case 'abc': {
-        sketchText(ctx, 'A B C', sx, sy, d.seed, boilFrame, {
-          color: 'rgba(51, 65, 85, 0.34)',
-          fontSize: 18,
-          weight: '800',
-          fontFamily: '"Segoe UI", system-ui, sans-serif',
-          wobble: 1.5,
-        });
-        break;
-      }
-      case 'quote': {
-        sketchText(ctx, '“...”', sx, sy, d.seed, boilFrame, {
-          color: 'rgba(51, 65, 85, 0.34)',
-          fontSize: 22,
-          weight: '800',
-          fontFamily: 'Georgia, serif',
-          wobble: 1.5,
-        });
-        break;
-      }
-      case 'pencil': {
-        // Hand-drawn wooden pencil
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - r * 0.9, y: sy - r * 0.16 },
-            { x: sx + r * 0.55, y: sy - r * 0.16 },
-            { x: sx + r * 0.95, y: sy },
-            { x: sx + r * 0.55, y: sy + r * 0.16 },
-            { x: sx - r * 0.9, y: sy + r * 0.16 },
-          ],
-          true,
-          d.seed,
-          boilFrame,
-          strokeOpts
-        );
-        sketchLine(ctx, sx - r * 0.65, sy - r * 0.16, sx - r * 0.65, sy + r * 0.16, d.seed + 6, boilFrame, strokeOpts);
-        break;
-      }
-      case 'book': {
-        // Little open book
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - r * 0.85, y: sy - r * 0.5 },
-            { x: sx, y: sy - r * 0.35 },
-            { x: sx + r * 0.85, y: sy - r * 0.5 },
-            { x: sx + r * 0.85, y: sy + r * 0.5 },
-            { x: sx, y: sy + r * 0.62 },
-            { x: sx - r * 0.85, y: sy + r * 0.5 },
-          ],
-          true,
-          d.seed,
-          boilFrame,
-          strokeOpts
-        );
-        sketchLine(ctx, sx, sy - r * 0.35, sx, sy + r * 0.62, d.seed + 7, boilFrame, strokeOpts);
-        break;
-      }
-      case 'math_eq': {
-        sketchText(ctx, 'x² + y² = r²', sx, sy, d.seed, boilFrame, {
-          color: 'rgba(14, 116, 144, 0.36)',
-          fontSize: 15,
-          weight: '700',
-          fontFamily: '"Segoe UI", system-ui, sans-serif',
-          wobble: 1.4,
-        });
-        break;
-      }
-      case 'protractor': {
-        sketchArc(ctx, sx, sy + r * 0.35, r * 0.85, Math.PI, 0, d.seed, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.85, sy + r * 0.35, sx + r * 0.85, sy + r * 0.35, d.seed + 5, boilFrame, strokeOpts);
-        sketchLine(ctx, sx, sy + r * 0.35, sx, sy - r * 0.5, d.seed + 9, boilFrame, strokeOpts);
-        break;
-      }
-      case 'cube': {
-        const s = r * 0.48;
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - s, y: sy - s * 0.5 },
-            { x: sx + s * 0.4, y: sy - s * 0.5 },
-            { x: sx + s * 0.4, y: sy + s * 0.9 },
-            { x: sx - s, y: sy + s * 0.9 },
-          ],
-          true,
-          d.seed,
-          boilFrame,
-          strokeOpts
-        );
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - s, y: sy - s * 0.5 },
-            { x: sx - s * 0.3, y: sy - s },
-            { x: sx + s, y: sy - s },
-            { x: sx + s * 0.4, y: sy - s * 0.5 },
-          ],
-          false,
-          d.seed + 6,
-          boilFrame,
-          strokeOpts
-        );
-        sketchLine(ctx, sx + s, sy - s, sx + s, sy + s * 0.4, d.seed + 11, boilFrame, strokeOpts);
-        sketchLine(ctx, sx + s * 0.4, sy + s * 0.9, sx + s, sy + s * 0.4, d.seed + 14, boilFrame, strokeOpts);
-        break;
-      }
-      case 'dna': {
-        const p1 = [];
-        const p2 = [];
-        for (let i = 0; i <= 10; i++) {
-          const t = i / 10;
-          const x = sx - r * 0.9 + t * r * 1.8;
-          const wave = Math.sin(t * Math.PI * 2.5) * r * 0.32;
-          p1.push({ x, y: sy + wave });
-          p2.push({ x, y: sy - wave });
-          if (i % 2 === 1) {
-            sketchLine(ctx, x, sy + wave, x, sy - wave, d.seed + i * 3, boilFrame, strokeOpts);
-          }
-        }
-        sketchPoly(ctx, p1, false, d.seed + 40, boilFrame, strokeOpts);
-        sketchPoly(ctx, p2, false, d.seed + 60, boilFrame, strokeOpts);
-        break;
-      }
-      case 'leaf': {
-        sketchArc(ctx, sx, sy + r * 0.45, r * 0.75, -Math.PI * 0.85, -Math.PI * 0.15, d.seed, boilFrame, strokeOpts);
-        sketchArc(ctx, sx, sy - r * 0.45, r * 0.75, Math.PI * 0.15, Math.PI * 0.85, d.seed + 5, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.85, sy, sx + r * 0.75, sy, d.seed + 9, boilFrame, strokeOpts);
-        break;
-      }
-      case 'magnet': {
-        sketchArc(ctx, sx, sy - r * 0.15, r * 0.5, Math.PI, 0, d.seed, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.5, sy - r * 0.15, sx - r * 0.5, sy + r * 0.55, d.seed + 4, boilFrame, strokeOpts);
-        sketchLine(ctx, sx + r * 0.5, sy - r * 0.15, sx + r * 0.5, sy + r * 0.55, d.seed + 8, boilFrame, strokeOpts);
-        sketchLine(ctx, sx - r * 0.5, sy + r * 0.3, sx - r * 0.25, sy + r * 0.3, d.seed + 12, boilFrame, strokeOpts);
-        sketchLine(ctx, sx + r * 0.25, sy + r * 0.3, sx + r * 0.5, sy + r * 0.3, d.seed + 15, boilFrame, strokeOpts);
-        break;
-      }
-      case 'hammer': {
-        sketchLine(ctx, sx - r * 0.65, sy + r * 0.7, sx + r * 0.25, sy - r * 0.2, d.seed, boilFrame, {
-          ...strokeOpts,
-          lineWidth: 2.6,
-        });
-        sketchPoly(
-          ctx,
-          [
-            { x: sx - r * 0.1, y: sy - r * 0.55 },
-            { x: sx + r * 0.65, y: sy + r * 0.2 },
-            { x: sx + r * 0.42, y: sy + r * 0.42 },
-            { x: sx - r * 0.32, y: sy - r * 0.32 },
-          ],
-          true,
-          d.seed + 6,
-          boilFrame,
-          strokeOpts
-        );
-        break;
-      }
-      case 'brush': {
-        sketchLine(ctx, sx - r * 0.75, sy + r * 0.65, sx + r * 0.35, sy - r * 0.35, d.seed, boilFrame, strokeOpts);
-        sketchPoly(
-          ctx,
-          [
-            { x: sx + r * 0.35, y: sy - r * 0.35 },
-            { x: sx + r * 0.8, y: sy - r * 0.55 },
-            { x: sx + r * 0.65, y: sy - r * 0.1 },
-          ],
-          true,
-          d.seed + 5,
-          boilFrame,
-          strokeOpts
-        );
-        break;
-      }
-      case 'saw': {
-        sketchLine(ctx, sx - r * 0.85, sy - r * 0.25, sx + r * 0.75, sy - r * 0.25, d.seed, boilFrame, strokeOpts);
-        const teeth = [];
-        for (let i = 0; i <= 6; i++) {
-          teeth.push({ x: sx - r * 0.75 + (i / 6) * r * 1.45, y: sy + (i % 2 === 0 ? 0.05 : 0.28) * r });
-        }
-        sketchPoly(ctx, teeth, false, d.seed + 6, boilFrame, strokeOpts);
-        break;
-      }
-    }
-  }
-
-  _drawSign(ctx, sign, toSX, toSY, boilFrame) {
-    const sx = toSX(sign.x);
-    const sy = toSY(sign.y);
-    const tilt = sign.tilt || 0;
-
-    sketchText(ctx, sign.text, sx, sy, sign.seed, boilFrame, {
-      color: 'rgba(24, 34, 48, 0.86)',
-      fontSize: 19,
-      weight: '700',
-      tilt,
-      underline: true,
-      wobble: 1.0,
-    });
-
-    if (sign.subtext) {
-      sketchText(ctx, sign.subtext, sx, sy + 21, sign.seed + 7.3, boilFrame, {
-        color: 'rgba(51, 65, 85, 0.72)',
-        fontSize: 12,
-        weight: '600',
-        tilt,
-        wobble: 0.8,
-      });
-    }
-
-    if (sign.arrowTo) {
-      const tx = toSX(sign.arrowTo.x);
-      const ty = toSY(sign.arrowTo.y);
-      const startY = sign.subtext ? sy + 31 : sy + 16;
-      sketchArrow(ctx, sx, startY, tx, ty, sign.seed + 19.7, boilFrame, {
-        color: 'rgba(30, 41, 59, 0.75)',
-        lineWidth: 2.0,
-        headSize: 10,
-        curve: sign.curve || 0,
-        wobble: 1.4,
-      });
-    }
-  }
-
-  _drawPlatformLabel(ctx, p, sx, sy, ph, boilFrame) {
-    const cfg = typeof p.label === 'string' ? { text: p.label } : p.label;
-    if (!cfg || !cfg.text) return;
-
-    const lx = sx + (cfg.offsetX || 0) * PPU;
-    const ly = sy - ph / 2 - 22 + (cfg.offsetY || 0) * PPU;
-
-    sketchText(ctx, cfg.text, lx, ly, p.seed + 301, boilFrame, {
-      color: 'rgba(24, 34, 48, 0.84)',
-      fontSize: 15,
-      weight: '700',
-      tilt: -(p.tilt || 0) * 0.5,
-      underline: true,
-    });
-
-    if (cfg.arrow !== false) {
-      sketchArrow(ctx, lx, ly + 11, sx, sy - ph / 2 - 4, p.seed + 317, boilFrame, {
-        color: 'rgba(51, 65, 85, 0.68)',
-        lineWidth: 1.6,
-        headSize: 7,
-        wobble: 1.0,
-      });
-    }
-  }
-
-  _drawMovingPlatformTrack(ctx, p, toSX, toSY, boilFrame) {
-    const isX = p.move.axis === 'x';
-    const x1 = toSX(isX ? p.baseX - p.move.range : p.baseX);
-    const y1 = toSY(isX ? p.baseY : p.baseY - p.move.range);
-    const x2 = toSX(isX ? p.baseX + p.move.range : p.baseX);
-    const y2 = toSY(isX ? p.baseY : p.baseY + p.move.range);
-
-    const dist = Math.hypot(x2 - x1, y2 - y1) || 1;
-    const dashCount = Math.max(4, Math.floor(dist / 22));
-    for (let i = 0; i < dashCount; i++) {
-      const t0 = i / dashCount;
-      const t1 = (i + 0.55) / dashCount;
-      sketchLine(
-        ctx,
-        x1 + (x2 - x1) * t0,
-        y1 + (y2 - y1) * t0,
-        x1 + (x2 - x1) * t1,
-        y1 + (y2 - y1) * t1,
-        p.seed + 50 + i * 3.7,
-        boilFrame,
-        { color: 'rgba(71, 85, 105, 0.34)', lineWidth: 1.6, wobble: 0.9, overshoot: 1, passes: 1 }
-      );
-    }
-
-    sketchCircle(ctx, x1, y1, 3.5, p.seed + 81, boilFrame, {
-      segments: 8,
-      color: 'rgba(71, 85, 105, 0.45)',
-      lineWidth: 1.5,
-      passes: 1,
-    });
-    sketchCircle(ctx, x2, y2, 3.5, p.seed + 89, boilFrame, {
-      segments: 8,
-      color: 'rgba(71, 85, 105, 0.45)',
-      lineWidth: 1.5,
-      passes: 1,
-    });
-  }
-
-  _drawMovingPlatformEffects(ctx, p, pw, ph, time, boilFrame) {
-    // Crisp top-edge chalk highlight
-    sketchLine(ctx, -pw / 2 + 6, -ph / 2 + 4, pw / 2 - 6, -ph / 2 + 4, p.seed + 101, boilFrame, {
-      color: 'rgba(255, 255, 255, 0.65)',
-      lineWidth: 1.8,
-      wobble: 0.7,
-      overshoot: 1,
-      passes: 1,
-    });
-
-    // Trailing motion lines opposite current velocity
-    const isX = p.move.axis === 'x';
-    const vel = Math.cos(time * p.move.speed) * p.move.speed;
-    const dir = vel >= 0 ? 1 : -1;
-    const strength = Math.min(1, Math.abs(vel) / Math.max(0.5, p.move.speed));
-    const len = 10 + strength * 14;
-
-    for (let i = -1; i <= 1; i++) {
-      if (isX) {
-        const edgeX = -dir * (pw / 2 + 6);
-        const yOff = i * (ph * 0.28);
-        sketchLine(
-          ctx,
-          edgeX,
-          yOff,
-          edgeX - dir * len,
-          yOff,
-          p.seed + 120 + i * 5.3,
-          boilFrame,
-          { color: 'rgba(37, 99, 235, 0.48)', lineWidth: 1.7, wobble: 1.0, overshoot: 1, passes: 1 }
-        );
-      } else {
-        // +Y in world is -Y in screen space
-        const screenDir = -dir;
-        const edgeY = -screenDir * (ph / 2 + 6);
-        const xOff = i * (pw * 0.28);
-        sketchLine(
-          ctx,
-          xOff,
-          edgeY,
-          xOff,
-          edgeY - screenDir * len,
-          p.seed + 120 + i * 5.3,
-          boilFrame,
-          { color: 'rgba(37, 99, 235, 0.48)', lineWidth: 1.7, wobble: 1.0, overshoot: 1, passes: 1 }
-        );
-      }
-    }
-  }
-
-  _drawCheckpoint(ctx, cp, toSX, toSY, time, boilFrame) {
-    const sx = toSX(cp.x);
-    const sy = toSY(cp.y);
-
-    // Pole, finial pinhead & base pin mark
-    sketchLine(ctx, sx, sy + 28, sx, sy - 36, cp.seed, boilFrame, { lineWidth: 2.6 });
-    sketchCircle(ctx, sx, sy - 39, 3.8, cp.seed + 2, boilFrame, {
-      segments: 10,
-      color: cp.activated ? '#0284c7' : INK,
-      lineWidth: 2.0,
-    });
-    sketchLine(ctx, sx - 7, sy + 28, sx + 7, sy + 28, cp.seed + 3, boilFrame, {
-      lineWidth: 1.8,
-      overshoot: 1.5,
-      passes: 1,
-    });
-
-    // Flag body
-    sketchRect(ctx, sx + 17, sy - 24, 34, 20, cp.seed + 5, boilFrame, {
-      fill: cp.activated ? '#38bdf8' : '#cbd5e1',
-      shadow: true,
-      lineWidth: 2,
-    });
-
-    // Crisp inner highlight along top of flag
-    sketchLine(ctx, sx + 4, sy - 30, sx + 30, sy - 30, cp.seed + 11, boilFrame, {
-      color: cp.activated ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.5)',
-      lineWidth: 1.7,
-      wobble: 0.7,
-      overshoot: 1,
-      passes: 1,
-    });
-
-    if (cp.activated) {
-      // Fluttering motion lines off right edge of flag
-      const wave = Math.sin(time * 5 + cp.x) * 2.5;
-      sketchLine(ctx, sx + 38, sy - 29 + wave * 0.4, sx + 49, sy - 31 - wave * 0.4, cp.seed + 17, boilFrame, {
-        color: 'rgba(14, 165, 233, 0.7)',
-        lineWidth: 1.8,
-        passes: 1,
-      });
-      sketchLine(ctx, sx + 38, sy - 19 - wave * 0.4, sx + 47, sy - 18 + wave * 0.4, cp.seed + 21, boilFrame, {
-        color: 'rgba(14, 165, 233, 0.7)',
-        lineWidth: 1.8,
-        passes: 1,
-      });
-
-      // Radiating celebration ticks around finial
-      for (let i = 0; i < 4; i++) {
-        const a = -Math.PI * 0.85 + (i / 3) * Math.PI * 0.7;
-        sketchLine(
-          ctx,
-          sx + Math.cos(a) * 9,
-          sy - 39 + Math.sin(a) * 9,
-          sx + Math.cos(a) * 16,
-          sy - 39 + Math.sin(a) * 16,
-          cp.seed + 30 + i * 4.1,
-          boilFrame,
-          { color: 'rgba(14, 165, 233, 0.78)', lineWidth: 1.7, wobble: 0.9, overshoot: 1, passes: 1 }
-        );
-      }
+      posAttr.needsUpdate = true;
     }
   }
 }
 
 // --- js/player.js ---
 class PaperclipPlayer {
-  constructor() {
+  constructor(scene) {
+    this.scene = scene;
     this.particles = [];
     this.speedLines = [];
 
@@ -2535,6 +2206,57 @@ class PaperclipPlayer {
     this.dead = false;
     this.respawnTimer = 0;
     this.spawnPos = { x: 0, y: 0 };
+
+    this._initMesh();
+  }
+
+  _initMesh() {
+    this.group = new THREE.Group();
+
+    // Classic paperclip loop in 3D world units (~0.56 wide x 0.96 tall)
+    const pts = [
+      [-0.08, -0.15, 0.02],
+      [-0.08, 0.28, 0.02],
+      [0.0, 0.39, 0.015],
+      [0.09, 0.39, 0.01],
+      [0.17, 0.28, 0.005],
+      [0.17, -0.34, 0.0],
+      [0.08, -0.45, -0.005],
+      [-0.09, -0.45, -0.01],
+      [-0.19, -0.34, -0.015],
+      [-0.19, 0.32, -0.02],
+      [-0.09, 0.46, -0.02],
+      [0.11, 0.46, -0.015],
+      [0.22, 0.32, -0.01],
+      [0.22, -0.17, 0.0],
+    ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.25);
+    const tubeGeo = new THREE.TubeGeometry(curve, 64, 0.042, 10, false);
+    this.wireMat = new THREE.MeshStandardMaterial({
+      color: 0x2563eb,
+      roughness: 0.28,
+      metalness: 0.65,
+    });
+    this.wireMesh = new THREE.Mesh(tubeGeo, this.wireMat);
+    this.wireMesh.castShadow = true;
+    this.group.add(this.wireMesh);
+
+    // Expressive 3D ink-dot eyes
+    const eyeGeo = new THREE.SphereGeometry(0.052, 10, 10);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x182230, roughness: 0.4 });
+    this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.leftEye.position.set(-0.07, 0.15, 0.07);
+    this.rightEye.position.set(0.08, 0.15, 0.07);
+    this.group.add(this.leftEye, this.rightEye);
+
+    this.scene.add(this.group);
+
+    this.fxGroup = new THREE.Group();
+    this.scene.add(this.fxGroup);
+    this.particleGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
+    this.lineGeo = new THREE.BoxGeometry(1, 0.035, 0.035);
   }
 
   spawn(pos) {
@@ -2564,17 +2286,25 @@ class PaperclipPlayer {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const spd = (0.4 + Math.random() * 0.8) * speed;
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, transparent: true });
+      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      mesh.position.set(x, y, (Math.random() - 0.5) * 0.3);
+      mesh.castShadow = true;
+      this.fxGroup.add(mesh);
+
       this.particles.push({
         x,
         y,
+        z: mesh.position.z,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd + 1.5,
+        vz: (Math.random() - 0.5) * 2.2,
         rot: Math.random() * Math.PI,
         rotSpeed: (Math.random() - 0.5) * 14,
         life: 0.35 + Math.random() * 0.25,
         maxLife: 0.55,
-        color,
-        size: 5 + Math.random() * 4,
+        mesh,
+        mat,
       });
     }
   }
@@ -2584,17 +2314,26 @@ class PaperclipPlayer {
     for (let i = 0; i < 2; i++) {
       const vx = -wallDir * (1.8 + Math.random() * 2.8);
       const vy = 1.0 + Math.random() * 2.8;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: true });
+      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      mesh.position.set(x, y + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2);
+      mesh.scale.setScalar(0.65);
+      this.fxGroup.add(mesh);
+
       this.particles.push({
-        x,
-        y: y + (Math.random() - 0.5) * 0.4,
+        x: mesh.position.x,
+        y: mesh.position.y,
+        z: mesh.position.z,
         vx,
         vy,
+        vz: (Math.random() - 0.5) * 1.5,
         rot: Math.random() * Math.PI,
         rotSpeed: (Math.random() - 0.5) * 18,
         life: 0.18 + Math.random() * 0.14,
         maxLife: 0.32,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 2.5,
+        mesh,
+        mat,
       });
     }
   }
@@ -2613,20 +2352,24 @@ class PaperclipPlayer {
       const len = isDashing ? 0.65 + Math.random() * 0.55 : 0.38 + Math.random() * 0.32;
       const x1 = this.x + px * side - ux * back;
       const y1 = this.y + py * side - uy * back;
-      const x2 = x1 - ux * len;
-      const y2 = y1 - uy * len;
       const maxLife = isDashing ? 0.18 : 0.13;
 
+      const mat = new THREE.MeshBasicMaterial({
+        color: isDashing ? 0x2563eb : 0x182230,
+        transparent: true,
+        opacity: 0.85,
+      });
+      const mesh = new THREE.Mesh(this.lineGeo, mat);
+      mesh.position.set(x1 - (ux * len) / 2, y1 - (uy * len) / 2, (Math.random() - 0.5) * 0.25);
+      mesh.scale.set(len, 1, 1);
+      mesh.rotation.z = Math.atan2(uy, ux);
+      this.fxGroup.add(mesh);
+
       this.speedLines.push({
-        x1,
-        y1,
-        x2,
-        y2,
         life: maxLife,
         maxLife,
-        seed: Math.random() * 1000,
-        color: isDashing ? '#2563eb' : INK,
-        width: isDashing ? 2.4 : 1.7,
+        mesh,
+        mat,
       });
     }
   }
@@ -2636,20 +2379,32 @@ class PaperclipPlayer {
       const p = this.particles[i];
       p.life -= dt;
       if (p.life <= 0) {
+        this.fxGroup.remove(p.mesh);
+        p.mat.dispose();
         this.particles.splice(i, 1);
         continue;
       }
       p.vy -= 14 * dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
+      p.z += p.vz * dt;
       p.rot += p.rotSpeed * dt;
+      const alpha = Math.max(0, p.life / p.maxLife);
+      p.mesh.position.set(p.x, p.y, p.z);
+      p.mesh.rotation.set(p.rot, p.rot * 0.7, p.rot);
+      p.mesh.scale.setScalar(0.4 + 0.6 * alpha);
+      p.mat.opacity = alpha;
     }
 
     for (let i = this.speedLines.length - 1; i >= 0; i--) {
       const sl = this.speedLines[i];
       sl.life -= dt;
       if (sl.life <= 0) {
+        this.fxGroup.remove(sl.mesh);
+        sl.mat.dispose();
         this.speedLines.splice(i, 1);
+      } else {
+        sl.mat.opacity = Math.max(0, sl.life / sl.maxLife) * 0.85;
       }
     }
   }
@@ -2936,138 +2691,65 @@ class PaperclipPlayer {
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
   }
 
-  draw(ctx, camX, camY, viewW, viewH, time) {
-    const toSX = (wx) => viewW / 2 + (wx - camX) * PPU;
-    const toSY = (wy) => viewH / 2 - (wy - camY) * PPU;
-    const boilFrame = Math.floor(time * BOIL_FPS) % 3;
-
-    // 1. Draw boiling speed/motion lines trailing behind the paperclip
-    for (const sl of this.speedLines) {
-      const alpha = Math.max(0, sl.life / sl.maxLife) * 0.85;
-      sketchLine(
-        ctx,
-        toSX(sl.x1),
-        toSY(sl.y1),
-        toSX(sl.x2),
-        toSY(sl.y2),
-        sl.seed,
-        boilFrame,
-        {
-          color: sl.color,
-          lineWidth: sl.width,
-          wobble: 1.6,
-          overshoot: 2.0,
-          passes: 1,
-          alpha,
-        }
-      );
-    }
-
-    // 2. Draw sketchy 2D particles
-    for (const p of this.particles) {
-      const sx = toSX(p.x);
-      const sy = toSY(p.y);
-      const alpha = Math.max(0, p.life / p.maxLife);
-      ctx.save();
-      ctx.translate(sx, sy);
-      ctx.rotate(p.rot);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.color;
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.4;
-      const s = p.size * (0.4 + 0.6 * alpha);
-      ctx.fillRect(-s / 2, -s / 2, s, s);
-      ctx.strokeRect(-s / 2, -s / 2, s, s);
-      ctx.restore();
-    }
-
+  syncVisuals() {
+    this.group.visible = !this.dead;
     if (this.dead) return;
 
-    // 2. Draw 2D Boiling-Line Paperclip Character
-    const sx = toSX(this.x);
-    const sy = toSY(this.y);
+    this.group.position.set(this.x, this.y, 0);
+    const lean = -this.vx * 0.025;
+    this.group.rotation.z = lean + this.spinAngle;
+    this.group.rotation.y = this.facing * 0.18 + this.spinAngle * 0.4;
+    this.group.scale.set(this.scaleX, this.scaleY, 1);
 
-    ctx.save();
-    ctx.translate(sx, sy);
-    const lean = this.vx * 0.025;
-    ctx.rotate(lean - this.spinAngle);
-    ctx.scale(this.scaleX, this.scaleY);
+    this.wireMat.color.setHex(this.canDash ? 0x2563eb : 0x64748b);
 
-    // Classic paperclip loop in pixel space (approx 30px wide x 50px tall)
-    const rawPts = [
-      { x: -4, y: 8 },
-      { x: -4, y: -15 },
-      { x: 0, y: -21 },
-      { x: 5, y: -21 },
-      { x: 9, y: -15 },
-      { x: 9, y: 18 },
-      { x: 4, y: 24 },
-      { x: -5, y: 24 },
-      { x: -10, y: 18 },
-      { x: -10, y: -17 },
-      { x: -5, y: -25 },
-      { x: 6, y: -25 },
-      { x: 12, y: -17 },
-      { x: 12, y: 9 },
-    ];
-
-    // Subtle paper drop shadow behind the paperclip
-    ctx.save();
-    ctx.translate(4, 5);
-    ctx.strokeStyle = 'rgba(24, 34, 48, 0.16)';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    rawPts.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
-    ctx.stroke();
-    ctx.restore();
-
-    // Boiling wire color (bright cobalt when dash is ready, cool slate when spent)
-    const wireColor = this.canDash ? '#2563eb' : '#64748b';
-
-    // Outer dark graphite sketch stroke + inner cobalt wire stroke (both boiling!)
-    sketchPoly(ctx, rawPts, false, 777, boilFrame, {
-      color: INK,
-      lineWidth: 4.8,
-      wobble: 1.5,
-      overshoot: 1.2,
-      passes: 1,
-      alpha: 0.95,
-    });
-    sketchPoly(ctx, rawPts, false, 779, boilFrame, {
-      color: wireColor,
-      lineWidth: 2.5,
-      wobble: 1.3,
-      overshoot: 0.8,
-      passes: 2,
-      alpha: 0.95,
-    });
-
-    // Expressive boiling ink-dot eyes
     const blinking = this.blinkTimer < 0.1;
-    const eyeShift = this.facing * 2.5;
-    const eyeY = -8;
-    const eyeH = blinking ? 1.0 : 3.2;
-
-    const drawEye = (ex, seed) => {
-      const jx = hash2(seed, boilFrame) * 0.9;
-      const jy = hash2(seed + 4, boilFrame) * 0.9;
-      ctx.fillStyle = INK;
-      ctx.beginPath();
-      ctx.ellipse(ex + eyeShift + jx, eyeY + jy, 2.7, eyeH, 0, 0, Math.PI * 2);
-      ctx.fill();
-    };
-    drawEye(-3.5, 810);
-    drawEye(4.5, 820);
-
-    ctx.restore();
+    const eyeShift = this.facing * 0.045;
+    const eyeScaleY = blinking ? 0.25 : 1.15;
+    this.leftEye.position.x = -0.07 + eyeShift;
+    this.rightEye.position.x = 0.08 + eyeShift;
+    this.leftEye.scale.set(1, eyeScaleY, 1);
+    this.rightEye.scale.set(1, eyeScaleY, 1);
   }
 }
 
 // --- js/main.js ---
 const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x141c26);
+
+const camera = new THREE.PerspectiveCamera(
+  38,
+  window.innerWidth / window.innerHeight,
+  0.5,
+  80
+);
+camera.position.set(4, -0.5, 16.5);
+
+// Warm desk-lamp lighting + cool paper ambient fill
+const hemiLight = new THREE.HemisphereLight(0xf8fafc, 0x94a3b8, 1.15);
+scene.add(hemiLight);
+
+const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+dirLight.position.set(8, 10, 12);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 1;
+dirLight.shadow.camera.far = 35;
+dirLight.shadow.camera.left = -18;
+dirLight.shadow.camera.right = 18;
+dirLight.shadow.camera.top = 12;
+dirLight.shadow.camera.bottom = -12;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+scene.add(dirLight.target);
 
 const hud = document.getElementById('hud');
 const levelNameEl = document.getElementById('level-name');
@@ -3091,23 +2773,20 @@ const btnMute = document.getElementById('btn-mute');
 const BEST_TIME_KEY = 'gemmets_resa_best_time';
 const BEST_STARS_KEY = 'gemmets_resa_best_stars';
 
-let viewW = window.innerWidth;
-let viewH = window.innerHeight;
-
 function resizeCanvas() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  viewW = window.innerWidth;
-  viewH = window.innerHeight;
-  canvas.width = Math.floor(viewW * dpr);
-  canvas.height = Math.floor(viewH * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // World & Player
-const world = new BookWorld();
-const player = new PaperclipPlayer();
+const world = new BookWorld(scene);
+const player = new PaperclipPlayer(scene);
 
 // Camera state in world coordinates
 let camX = 4;
@@ -3356,7 +3035,7 @@ function animate(now) {
   jumpJustPressed = false;
   dashJustPressed = false;
 
-  // Smooth 2D sidescrolling camera with lookahead
+  // Smooth 2.5D sidescrolling camera with lookahead & subtle perspective angle
   const lookAhead = player.facing * 2.4;
   const targetCamX = Math.max(4, Math.min(396, player.x + lookAhead));
   const targetCamY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
@@ -3364,13 +3043,19 @@ function animate(now) {
   camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
   camY += (targetCamY - camY) * Math.min(1, dt * 4.2);
 
-  // Render pure 2D boiling pencil world & character
-  world.draw(ctx, camX, camY, viewW, viewH, worldTime);
-  player.draw(ctx, camX, camY, viewW, viewH, worldTime);
+  camera.position.set(camX, camY + 0.35, 16.5);
+  camera.lookAt(camX + player.facing * 0.35, camY, 0);
+
+  // Keep directional shadow frustum centered on camera
+  dirLight.position.set(camX + 5, camY + 9, 12);
+  dirLight.target.position.set(camX, camY, 0);
+  dirLight.target.updateMatrixWorld();
+
+  player.syncVisuals();
+  renderer.render(scene, camera);
 }
 
 requestAnimationFrame(animate);
-})();
   </script>
 </body>
 </html>

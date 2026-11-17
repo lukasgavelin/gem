@@ -1,9 +1,9 @@
+import * as THREE from 'three';
 import { sound } from './audio.js';
-import { PPU } from './book.js';
-import { BOIL_FPS, INK, hash2, sketchLine, sketchPoly } from './sketch2d.js';
 
 export class PaperclipPlayer {
-  constructor() {
+  constructor(scene) {
+    this.scene = scene;
     this.particles = [];
     this.speedLines = [];
 
@@ -42,6 +42,57 @@ export class PaperclipPlayer {
     this.dead = false;
     this.respawnTimer = 0;
     this.spawnPos = { x: 0, y: 0 };
+
+    this._initMesh();
+  }
+
+  _initMesh() {
+    this.group = new THREE.Group();
+
+    // Classic paperclip loop in 3D world units (~0.56 wide x 0.96 tall)
+    const pts = [
+      [-0.08, -0.15, 0.02],
+      [-0.08, 0.28, 0.02],
+      [0.0, 0.39, 0.015],
+      [0.09, 0.39, 0.01],
+      [0.17, 0.28, 0.005],
+      [0.17, -0.34, 0.0],
+      [0.08, -0.45, -0.005],
+      [-0.09, -0.45, -0.01],
+      [-0.19, -0.34, -0.015],
+      [-0.19, 0.32, -0.02],
+      [-0.09, 0.46, -0.02],
+      [0.11, 0.46, -0.015],
+      [0.22, 0.32, -0.01],
+      [0.22, -0.17, 0.0],
+    ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.25);
+    const tubeGeo = new THREE.TubeGeometry(curve, 64, 0.042, 10, false);
+    this.wireMat = new THREE.MeshStandardMaterial({
+      color: 0x2563eb,
+      roughness: 0.28,
+      metalness: 0.65,
+    });
+    this.wireMesh = new THREE.Mesh(tubeGeo, this.wireMat);
+    this.wireMesh.castShadow = true;
+    this.group.add(this.wireMesh);
+
+    // Expressive 3D ink-dot eyes
+    const eyeGeo = new THREE.SphereGeometry(0.052, 10, 10);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x182230, roughness: 0.4 });
+    this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.leftEye.position.set(-0.07, 0.15, 0.07);
+    this.rightEye.position.set(0.08, 0.15, 0.07);
+    this.group.add(this.leftEye, this.rightEye);
+
+    this.scene.add(this.group);
+
+    this.fxGroup = new THREE.Group();
+    this.scene.add(this.fxGroup);
+    this.particleGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
+    this.lineGeo = new THREE.BoxGeometry(1, 0.035, 0.035);
   }
 
   spawn(pos) {
@@ -71,17 +122,25 @@ export class PaperclipPlayer {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const spd = (0.4 + Math.random() * 0.8) * speed;
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, transparent: true });
+      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      mesh.position.set(x, y, (Math.random() - 0.5) * 0.3);
+      mesh.castShadow = true;
+      this.fxGroup.add(mesh);
+
       this.particles.push({
         x,
         y,
+        z: mesh.position.z,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd + 1.5,
+        vz: (Math.random() - 0.5) * 2.2,
         rot: Math.random() * Math.PI,
         rotSpeed: (Math.random() - 0.5) * 14,
         life: 0.35 + Math.random() * 0.25,
         maxLife: 0.55,
-        color,
-        size: 5 + Math.random() * 4,
+        mesh,
+        mat,
       });
     }
   }
@@ -91,17 +150,26 @@ export class PaperclipPlayer {
     for (let i = 0; i < 2; i++) {
       const vx = -wallDir * (1.8 + Math.random() * 2.8);
       const vy = 1.0 + Math.random() * 2.8;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: true });
+      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      mesh.position.set(x, y + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2);
+      mesh.scale.setScalar(0.65);
+      this.fxGroup.add(mesh);
+
       this.particles.push({
-        x,
-        y: y + (Math.random() - 0.5) * 0.4,
+        x: mesh.position.x,
+        y: mesh.position.y,
+        z: mesh.position.z,
         vx,
         vy,
+        vz: (Math.random() - 0.5) * 1.5,
         rot: Math.random() * Math.PI,
         rotSpeed: (Math.random() - 0.5) * 18,
         life: 0.18 + Math.random() * 0.14,
         maxLife: 0.32,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 2.5,
+        mesh,
+        mat,
       });
     }
   }
@@ -120,20 +188,24 @@ export class PaperclipPlayer {
       const len = isDashing ? 0.65 + Math.random() * 0.55 : 0.38 + Math.random() * 0.32;
       const x1 = this.x + px * side - ux * back;
       const y1 = this.y + py * side - uy * back;
-      const x2 = x1 - ux * len;
-      const y2 = y1 - uy * len;
       const maxLife = isDashing ? 0.18 : 0.13;
 
+      const mat = new THREE.MeshBasicMaterial({
+        color: isDashing ? 0x2563eb : 0x182230,
+        transparent: true,
+        opacity: 0.85,
+      });
+      const mesh = new THREE.Mesh(this.lineGeo, mat);
+      mesh.position.set(x1 - (ux * len) / 2, y1 - (uy * len) / 2, (Math.random() - 0.5) * 0.25);
+      mesh.scale.set(len, 1, 1);
+      mesh.rotation.z = Math.atan2(uy, ux);
+      this.fxGroup.add(mesh);
+
       this.speedLines.push({
-        x1,
-        y1,
-        x2,
-        y2,
         life: maxLife,
         maxLife,
-        seed: Math.random() * 1000,
-        color: isDashing ? '#2563eb' : INK,
-        width: isDashing ? 2.4 : 1.7,
+        mesh,
+        mat,
       });
     }
   }
@@ -143,20 +215,32 @@ export class PaperclipPlayer {
       const p = this.particles[i];
       p.life -= dt;
       if (p.life <= 0) {
+        this.fxGroup.remove(p.mesh);
+        p.mat.dispose();
         this.particles.splice(i, 1);
         continue;
       }
       p.vy -= 14 * dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
+      p.z += p.vz * dt;
       p.rot += p.rotSpeed * dt;
+      const alpha = Math.max(0, p.life / p.maxLife);
+      p.mesh.position.set(p.x, p.y, p.z);
+      p.mesh.rotation.set(p.rot, p.rot * 0.7, p.rot);
+      p.mesh.scale.setScalar(0.4 + 0.6 * alpha);
+      p.mat.opacity = alpha;
     }
 
     for (let i = this.speedLines.length - 1; i >= 0; i--) {
       const sl = this.speedLines[i];
       sl.life -= dt;
       if (sl.life <= 0) {
+        this.fxGroup.remove(sl.mesh);
+        sl.mat.dispose();
         this.speedLines.splice(i, 1);
+      } else {
+        sl.mat.opacity = Math.max(0, sl.life / sl.maxLife) * 0.85;
       }
     }
   }
@@ -443,131 +527,24 @@ export class PaperclipPlayer {
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
   }
 
-  draw(ctx, camX, camY, viewW, viewH, time) {
-    const toSX = (wx) => viewW / 2 + (wx - camX) * PPU;
-    const toSY = (wy) => viewH / 2 - (wy - camY) * PPU;
-    const boilFrame = Math.floor(time * BOIL_FPS) % 3;
-
-    // 1. Draw boiling speed/motion lines trailing behind the paperclip
-    for (const sl of this.speedLines) {
-      const alpha = Math.max(0, sl.life / sl.maxLife) * 0.85;
-      sketchLine(
-        ctx,
-        toSX(sl.x1),
-        toSY(sl.y1),
-        toSX(sl.x2),
-        toSY(sl.y2),
-        sl.seed,
-        boilFrame,
-        {
-          color: sl.color,
-          lineWidth: sl.width,
-          wobble: 1.6,
-          overshoot: 2.0,
-          passes: 1,
-          alpha,
-        }
-      );
-    }
-
-    // 2. Draw sketchy 2D particles
-    for (const p of this.particles) {
-      const sx = toSX(p.x);
-      const sy = toSY(p.y);
-      const alpha = Math.max(0, p.life / p.maxLife);
-      ctx.save();
-      ctx.translate(sx, sy);
-      ctx.rotate(p.rot);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.color;
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.4;
-      const s = p.size * (0.4 + 0.6 * alpha);
-      ctx.fillRect(-s / 2, -s / 2, s, s);
-      ctx.strokeRect(-s / 2, -s / 2, s, s);
-      ctx.restore();
-    }
-
+  syncVisuals() {
+    this.group.visible = !this.dead;
     if (this.dead) return;
 
-    // 2. Draw 2D Boiling-Line Paperclip Character
-    const sx = toSX(this.x);
-    const sy = toSY(this.y);
+    this.group.position.set(this.x, this.y, 0);
+    const lean = -this.vx * 0.025;
+    this.group.rotation.z = lean + this.spinAngle;
+    this.group.rotation.y = this.facing * 0.18 + this.spinAngle * 0.4;
+    this.group.scale.set(this.scaleX, this.scaleY, 1);
 
-    ctx.save();
-    ctx.translate(sx, sy);
-    const lean = this.vx * 0.025;
-    ctx.rotate(lean - this.spinAngle);
-    ctx.scale(this.scaleX, this.scaleY);
+    this.wireMat.color.setHex(this.canDash ? 0x2563eb : 0x64748b);
 
-    // Classic paperclip loop in pixel space (approx 30px wide x 50px tall)
-    const rawPts = [
-      { x: -4, y: 8 },
-      { x: -4, y: -15 },
-      { x: 0, y: -21 },
-      { x: 5, y: -21 },
-      { x: 9, y: -15 },
-      { x: 9, y: 18 },
-      { x: 4, y: 24 },
-      { x: -5, y: 24 },
-      { x: -10, y: 18 },
-      { x: -10, y: -17 },
-      { x: -5, y: -25 },
-      { x: 6, y: -25 },
-      { x: 12, y: -17 },
-      { x: 12, y: 9 },
-    ];
-
-    // Subtle paper drop shadow behind the paperclip
-    ctx.save();
-    ctx.translate(4, 5);
-    ctx.strokeStyle = 'rgba(24, 34, 48, 0.16)';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    rawPts.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
-    ctx.stroke();
-    ctx.restore();
-
-    // Boiling wire color (bright cobalt when dash is ready, cool slate when spent)
-    const wireColor = this.canDash ? '#2563eb' : '#64748b';
-
-    // Outer dark graphite sketch stroke + inner cobalt wire stroke (both boiling!)
-    sketchPoly(ctx, rawPts, false, 777, boilFrame, {
-      color: INK,
-      lineWidth: 4.8,
-      wobble: 1.5,
-      overshoot: 1.2,
-      passes: 1,
-      alpha: 0.95,
-    });
-    sketchPoly(ctx, rawPts, false, 779, boilFrame, {
-      color: wireColor,
-      lineWidth: 2.5,
-      wobble: 1.3,
-      overshoot: 0.8,
-      passes: 2,
-      alpha: 0.95,
-    });
-
-    // Expressive boiling ink-dot eyes
     const blinking = this.blinkTimer < 0.1;
-    const eyeShift = this.facing * 2.5;
-    const eyeY = -8;
-    const eyeH = blinking ? 1.0 : 3.2;
-
-    const drawEye = (ex, seed) => {
-      const jx = hash2(seed, boilFrame) * 0.9;
-      const jy = hash2(seed + 4, boilFrame) * 0.9;
-      ctx.fillStyle = INK;
-      ctx.beginPath();
-      ctx.ellipse(ex + eyeShift + jx, eyeY + jy, 2.7, eyeH, 0, 0, Math.PI * 2);
-      ctx.fill();
-    };
-    drawEye(-3.5, 810);
-    drawEye(4.5, 820);
-
-    ctx.restore();
+    const eyeShift = this.facing * 0.045;
+    const eyeScaleY = blinking ? 0.25 : 1.15;
+    this.leftEye.position.x = -0.07 + eyeShift;
+    this.rightEye.position.x = 0.08 + eyeShift;
+    this.leftEye.scale.set(1, eyeScaleY, 1);
+    this.rightEye.scale.set(1, eyeScaleY, 1);
   }
 }

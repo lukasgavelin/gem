@@ -8,18 +8,21 @@ ROOT = Path(__file__).resolve().parent
 JS_ORDER = [
     "js/audio.js",
     "js/sketch2d.js",
+    "js/textures3d.js",
     "js/levels.js",
     "js/book.js",
     "js/player.js",
     "js/main.js",
 ]
 
-IMPORT_RE = re.compile(r"^\s*import\s+(?:[\s\S]*?\s+from\s+)?['\"][^'\"]+['\"];\s*$", re.MULTILINE)
+LOCAL_IMPORT_RE = re.compile(r"^\s*import\s+(?:[\s\S]*?\s+from\s+)?['\"]\.\/[^'\"]+['\"];\s*$", re.MULTILINE)
+THREE_IMPORT_RE = re.compile(r"^\s*import\s+\*\s+as\s+THREE\s+from\s+['\"]three['\"];\s*$", re.MULTILINE)
 EXPORT_RE = re.compile(r"^\s*export\s+(?=(?:const|let|var|function|class)\b)", re.MULTILINE)
 
 
 def strip_module_syntax(code: str) -> str:
-    code = IMPORT_RE.sub("", code)
+    code = LOCAL_IMPORT_RE.sub("", code)
+    code = THREE_IMPORT_RE.sub("", code)
     code = EXPORT_RE.sub("", code)
     return code.strip()
 
@@ -41,7 +44,7 @@ def build() -> None:
     )
     html = html.replace(
         '<script type="module" src="js/main.js"></script>',
-        f"<script>\n(() => {{\n{bundled_js}\n}})();\n  </script>",
+        f"<script type=\"module\">\nimport * as THREE from 'three';\n{bundled_js}\n  </script>",
     )
 
     out_path = ROOT / "gemmets-resa.html"

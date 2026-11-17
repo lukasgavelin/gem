@@ -1,10 +1,45 @@
+import * as THREE from 'three';
 import { WORLD_DATA } from './levels.js';
 import { BookWorld } from './book.js';
 import { PaperclipPlayer } from './player.js';
 import { sound } from './audio.js';
 
 const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x141c26);
+
+const camera = new THREE.PerspectiveCamera(
+  38,
+  window.innerWidth / window.innerHeight,
+  0.5,
+  80
+);
+camera.position.set(4, -0.5, 16.5);
+
+// Warm desk-lamp lighting + cool paper ambient fill
+const hemiLight = new THREE.HemisphereLight(0xf8fafc, 0x94a3b8, 1.15);
+scene.add(hemiLight);
+
+const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+dirLight.position.set(8, 10, 12);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 1;
+dirLight.shadow.camera.far = 35;
+dirLight.shadow.camera.left = -18;
+dirLight.shadow.camera.right = 18;
+dirLight.shadow.camera.top = 12;
+dirLight.shadow.camera.bottom = -12;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+scene.add(dirLight.target);
 
 const hud = document.getElementById('hud');
 const levelNameEl = document.getElementById('level-name');
@@ -28,23 +63,20 @@ const btnMute = document.getElementById('btn-mute');
 const BEST_TIME_KEY = 'gemmets_resa_best_time';
 const BEST_STARS_KEY = 'gemmets_resa_best_stars';
 
-let viewW = window.innerWidth;
-let viewH = window.innerHeight;
-
 function resizeCanvas() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  viewW = window.innerWidth;
-  viewH = window.innerHeight;
-  canvas.width = Math.floor(viewW * dpr);
-  canvas.height = Math.floor(viewH * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // World & Player
-const world = new BookWorld();
-const player = new PaperclipPlayer();
+const world = new BookWorld(scene);
+const player = new PaperclipPlayer(scene);
 
 // Camera state in world coordinates
 let camX = 4;
@@ -293,7 +325,7 @@ function animate(now) {
   jumpJustPressed = false;
   dashJustPressed = false;
 
-  // Smooth 2D sidescrolling camera with lookahead
+  // Smooth 2.5D sidescrolling camera with lookahead & subtle perspective angle
   const lookAhead = player.facing * 2.4;
   const targetCamX = Math.max(4, Math.min(396, player.x + lookAhead));
   const targetCamY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
@@ -301,9 +333,16 @@ function animate(now) {
   camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
   camY += (targetCamY - camY) * Math.min(1, dt * 4.2);
 
-  // Render pure 2D boiling pencil world & character
-  world.draw(ctx, camX, camY, viewW, viewH, worldTime);
-  player.draw(ctx, camX, camY, viewW, viewH, worldTime);
+  camera.position.set(camX, camY + 0.35, 16.5);
+  camera.lookAt(camX + player.facing * 0.35, camY, 0);
+
+  // Keep directional shadow frustum centered on camera
+  dirLight.position.set(camX + 5, camY + 9, 12);
+  dirLight.target.position.set(camX, camY, 0);
+  dirLight.target.updateMatrixWorld();
+
+  player.syncVisuals();
+  renderer.render(scene, camera);
 }
 
 requestAnimationFrame(animate);
