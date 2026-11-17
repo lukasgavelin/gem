@@ -23,11 +23,14 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(4, -0.5, 16.5);
 
-// Warm desk-lamp lighting + cool paper ambient fill
-const hemiLight = new THREE.HemisphereLight(0xf8fafc, 0x94a3b8, 1.15);
+// Warm desk-lamp lighting + bright paper ambient fill (Three.js r155+ PBR units)
+const ambientLight = new THREE.AmbientLight(0xffffff, 2.8);
+scene.add(ambientLight);
+
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.5);
 scene.add(hemiLight);
 
-const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+const dirLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
 dirLight.position.set(8, 10, 12);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
@@ -374,8 +377,9 @@ function animate(now) {
   camera.lookAt(camX + player.facing * 0.35 * dimensionMix, camY, 0);
 
   // Dynamic 2D flat lighting -> 3D desk-lamp shadows
-  dirLight.intensity = 1.35 * dimensionMix;
-  hemiLight.intensity = 1.55 - 0.4 * dimensionMix;
+  ambientLight.intensity = 2.8 - 1.2 * dimensionMix;
+  hemiLight.intensity = 0.5 + 0.5 * dimensionMix;
+  dirLight.intensity = 2.2 * dimensionMix;
   renderer.shadowMap.enabled = dimensionMix > 0.05;
 
   // Keep directional shadow frustum centered on camera
