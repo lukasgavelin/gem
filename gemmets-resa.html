@@ -1,0 +1,3376 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemmets Resa — Handritat 2D-äventyr</title>
+  <style>
+:root {
+  --paper-ice: #eef4fa;
+  --paper-tint: #dce7f3;
+  --ink-dark: #182230;
+  --ink-muted: #52637a;
+  --accent-blue: #2563eb;
+  --accent-cyan: #0891b2;
+  --shadow-cool: rgba(10, 18, 30, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #141c26;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--ink-dark);
+}
+
+#game-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* HUD */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hud-left, .hud-right {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+#hud > .hud-left {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+}
+
+#hud > .hud-right {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  pointer-events: auto;
+}
+
+.paper-badge {
+  background: var(--paper-ice);
+  padding: 7px 14px;
+  border-radius: 2px;
+  border: 2px solid var(--ink-dark);
+  box-shadow: 3px 3px 0 var(--ink-dark);
+  display: flex;
+  flex-direction: column;
+}
+
+.paper-badge:nth-child(2) {
+  background: var(--paper-tint);
+}
+
+.badge-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+}
+
+.badge-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink-dark);
+}
+
+.paper-btn {
+  pointer-events: auto;
+  background: var(--paper-ice);
+  border: 2px solid var(--ink-dark);
+  padding: 8px 13px;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink-dark);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.paper-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink-dark);
+}
+
+.paper-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.controls-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(238, 244, 250, 0.92);
+  border: 2px solid var(--ink-dark);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-dark);
+  display: flex;
+  gap: 16px;
+  box-shadow: 0 4px 14px var(--shadow-cool);
+  white-space: nowrap;
+}
+
+kbd {
+  display: inline-block;
+  background: #fff;
+  border: 1.5px solid var(--ink-dark);
+  border-bottom-width: 2.5px;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 2px;
+}
+
+/* Overlays */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 20, 30, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.paper-card {
+  position: relative;
+  width: min(450px, 90vw);
+  background: var(--paper-ice);
+  background-image:
+    linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  padding: 34px 32px 28px;
+  border-radius: 3px;
+  border: 2.5px solid var(--ink-dark);
+  box-shadow: 8px 8px 0 var(--ink-dark);
+  text-align: center;
+}
+
+.pin {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--ink-dark);
+  box-shadow: 0 3px 0 var(--ink-dark);
+}
+
+.subtitle {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--accent-blue);
+  margin-bottom: 6px;
+}
+
+.paper-card h1 {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  color: var(--ink-dark);
+}
+
+.description {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  margin-bottom: 20px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  text-align: left;
+  background: rgba(203, 222, 242, 0.55);
+  border: 1.5px solid var(--ink-dark);
+  padding: 13px 15px;
+  border-radius: 2px;
+  margin-bottom: 22px;
+  font-size: 13px;
+  align-items: center;
+}
+
+.primary-btn {
+  background: var(--accent-blue);
+  color: #fff;
+  border: 2px solid var(--ink-dark);
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 3px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ink-dark);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.primary-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink-dark);
+}
+
+.primary-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.best-stats {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin-bottom: 18px;
+}
+
+/* Touch controls for mobile / tablet */
+.touch-controls {
+  display: none;
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.touch-group {
+  display: flex;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.touch-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink-dark);
+  background: rgba(238, 244, 250, 0.88);
+  color: var(--ink-dark);
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: 3px 3px 0 var(--ink-dark);
+  touch-action: none;
+}
+
+.touch-btn:active,
+.touch-btn.active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink-dark);
+  background: var(--paper-tint);
+}
+
+.touch-jump {
+  background: rgba(37, 99, 235, 0.9);
+  color: #fff;
+}
+
+@media (pointer: coarse) {
+  .controls-hint {
+    display: none;
+  }
+  .touch-controls {
+    display: flex;
+  }
+}
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="paper-badge">
+        <span class="badge-label">SIDA</span>
+        <span id="level-name" class="badge-value">1. Anteckningslinjer</span>
+      </div>
+      <div class="paper-badge">
+        <span class="badge-label">STJÄRNOR</span>
+        <span id="star-count" class="badge-value">0 / 24</span>
+      </div>
+      <div class="paper-badge">
+        <span class="badge-label">FRAMSTEG</span>
+        <span id="progress-pct" class="badge-value">0%</span>
+      </div>
+      <div class="paper-badge">
+        <span class="badge-label">TID</span>
+        <span id="run-timer" class="badge-value">0:00</span>
+      </div>
+    </div>
+
+    <div class="hud-right">
+      <button id="btn-pause" class="paper-btn" title="Pausa (P / Esc)">⏸ Paus</button>
+      <button id="btn-restart" class="paper-btn" title="Starta om från början (Shift+R)">↺ Ny runda</button>
+      <button id="btn-mute" class="paper-btn" title="Ljud på/av (M)">🔊 Ljud</button>
+    </div>
+
+    <div class="controls-hint">
+      <span><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> Spring</span>
+      <span><kbd>Space</kbd> / <kbd>W</kbd> Hoppa &amp; Vägghopp</span>
+      <span><kbd>Shift</kbd> / <kbd>X</kbd> Fjäder-dash</span>
+      <span><kbd>R</kbd> Checkpoint</span>
+      <span><kbd>P</kbd> Paus</span>
+    </div>
+
+    <!-- Mobile / Touch controls (shown only on coarse pointers) -->
+    <div id="touch-controls" class="touch-controls">
+      <div class="touch-group">
+        <button id="touch-left" class="touch-btn" aria-label="Vänster">◀</button>
+        <button id="touch-right" class="touch-btn" aria-label="Höger">▶</button>
+      </div>
+      <div class="touch-group">
+        <button id="touch-dash" class="touch-btn touch-dash" aria-label="Dash">⚡</button>
+        <button id="touch-jump" class="touch-btn touch-jump" aria-label="Hoppa">▲</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start / Title Overlay -->
+  <div id="start-overlay" class="overlay">
+    <div class="paper-card">
+      <div class="pin"></div>
+      <p class="subtitle">HANDRITAT 2D SIDESCROLLER</p>
+      <h1>Gemmets Resa</h1>
+      <p class="description">
+        En levande blyertsvärld där allt ritas i realtid.
+        Ta dig från vänster till höger över linjer, rutnät och skissblad —
+        studsa på suddgummin, vägghoppa och dasha förbi bläcktaggarna!
+      </p>
+      <div class="controls-grid">
+        <div><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd></div><div>Spring</div>
+        <div><kbd>Space</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></div><div>Hoppa &amp; Vägghopp</div>
+        <div><kbd>Shift</kbd> / <kbd>X</kbd> / <kbd>K</kbd></div><div>Fjäder-dash</div>
+      </div>
+      <button id="btn-start" class="primary-btn">Börja rita</button>
+    </div>
+  </div>
+
+  <!-- Pause Overlay -->
+  <div id="pause-overlay" class="overlay hidden">
+    <div class="paper-card">
+      <div class="pin"></div>
+      <p class="subtitle">PAUSAD</p>
+      <h1>Bokmärke lagt</h1>
+      <p class="description">Ta en andningspaus innan du hoppar vidare.</p>
+      <div class="pause-actions">
+        <button id="btn-resume" class="primary-btn">Fortsätt</button>
+        <button id="btn-checkpoint" class="paper-btn">↺ Till checkpoint (R)</button>
+        <button id="btn-full-restart" class="paper-btn">Börja om från början</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Overlay -->
+  <div id="win-overlay" class="overlay hidden">
+    <div class="paper-card">
+      <div class="pin"></div>
+      <p class="subtitle">SISTA SIDAN KLAR!</p>
+      <h1>Snyggt jobbat!</h1>
+      <p id="win-stats" class="description">Du tog dig genom hela skissblocket.</p>
+      <p id="win-best" class="best-stats"></p>
+      <button id="btn-play-again" class="primary-btn">Spela igen</button>
+    </div>
+  </div>
+
+  <script>
+(() => {
+// --- js/audio.js ---
+// Procedural Web Audio API sound effects for tactile paper & wire feedback
+
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  toggleMute() {
+    this.muted = !this.muted;
+    return this.muted;
+  }
+
+  _ready() {
+    if (this.muted) return false;
+    this.init();
+    return Boolean(this.ctx);
+  }
+
+  playJump() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const pitch = 0.92 + Math.random() * 0.16;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(240 * pitch, now);
+    osc.frequency.exponentialRampToValueAtTime(520 * pitch, now + 0.11);
+
+    gain.gain.setValueAtTime(0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
+  playDash() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    // Metallic wire "twang"
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(620, now);
+    osc.frequency.exponentialRampToValueAtTime(190, now + 0.16);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.Q.value = 3;
+
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
+
+  playBounce() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const pitch = 0.92 + Math.random() * 0.16;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180 * pitch, now);
+    osc.frequency.exponentialRampToValueAtTime(680 * pitch, now + 0.16);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.23);
+  }
+
+  playLand() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const pitch = 0.88 + Math.random() * 0.24;
+    // Soft paper tap using filtered noise
+    const bufferSize = this.ctx.sampleRate * 0.05;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.playbackRate.value = pitch;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 900 * pitch;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+
+  playWallScratch() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const duration = 0.05;
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const env = Math.sin((i / bufferSize) * Math.PI);
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2400 + Math.random() * 900;
+    filter.Q.value = 2.6;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+
+  playCheckpoint() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+      gain.gain.setValueAtTime(0.11, now + idx * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.28);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + idx * 0.06);
+      osc.stop(now + idx * 0.06 + 0.3);
+    });
+  }
+
+  playStar() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const notes = [587.33, 880, 1174.66];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.055);
+      gain.gain.setValueAtTime(0.12, now + idx * 0.055);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.22);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + idx * 0.055);
+      osc.stop(now + idx * 0.055 + 0.24);
+    });
+  }
+
+  playHazard() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(65, now + 0.18);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.21);
+  }
+
+  playPageFlip() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const duration = 0.45;
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const env = Math.sin((i / bufferSize) * Math.PI);
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(2200, now + duration * 0.6);
+    filter.Q.value = 1.2;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+}
+const sound = new SoundEngine();
+
+// --- js/sketch2d.js ---
+// Deterministic 2D hand-drawn "boiling lines" pencil rendering helpers
+const INK = '#182230';
+const BOIL_FPS = 8;
+
+// Fast deterministic pseudo-random in [-1, 1]
+function hash2(seed, boilFrame) {
+  let n = Math.sin(seed * 127.1 + boilFrame * 311.7) * 43758.5453123;
+  return (n - Math.floor(n)) * 2 - 1;
+}
+function sketchLine(ctx, x1, y1, x2, y2, seed, boilFrame, opts = {}) {
+  const {
+    color = INK,
+    lineWidth = 2.2,
+    wobble = 2.0,
+    overshoot = 3.5,
+    passes = 2,
+    alpha = 0.9,
+  } = opts;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+
+  ctx.strokeStyle = color;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const prevAlpha = ctx.globalAlpha;
+
+  for (let p = 0; p < passes; p++) {
+    const s = seed + p * 17.3;
+    const j1x = hash2(s + 1.1, boilFrame) * wobble;
+    const j1y = hash2(s + 2.3, boilFrame) * wobble;
+    const j2x = hash2(s + 3.7, boilFrame) * wobble;
+    const j2y = hash2(s + 4.9, boilFrame) * wobble;
+    const midX = (x1 + x2) * 0.5 + hash2(s + 6.1, boilFrame) * wobble * 1.1;
+    const midY = (y1 + y2) * 0.5 + hash2(s + 7.3, boilFrame) * wobble * 1.1;
+
+    ctx.globalAlpha = prevAlpha * (p === 0 ? alpha : alpha * 0.45);
+    ctx.lineWidth = p === 0 ? lineWidth : lineWidth * 0.72;
+
+    ctx.beginPath();
+    ctx.moveTo(x1 - ux * overshoot + j1x, y1 - uy * overshoot + j1y);
+    ctx.quadraticCurveTo(midX, midY, x2 + ux * overshoot + j2x, y2 + uy * overshoot + j2y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = prevAlpha;
+}
+function sketchPoly(ctx, pts, closed, seed, boilFrame, opts = {}) {
+  const count = closed ? pts.length : pts.length - 1;
+  for (let i = 0; i < count; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    sketchLine(ctx, a.x, a.y, b.x, b.y, seed + i * 11.7, boilFrame, opts);
+  }
+}
+function sketchRect(ctx, x, y, w, h, seed, boilFrame, opts = {}) {
+  const {
+    fill = '#d5e1ee',
+    hatch = false,
+    shadow = true,
+    lineWidth = 2.3,
+    wobble = 1.8,
+  } = opts;
+
+  const hw = w / 2;
+  const hh = h / 2;
+
+  ctx.save();
+  // Soft paper cutout drop shadow
+  if (shadow) {
+    ctx.fillStyle = 'rgba(24, 34, 48, 0.14)';
+    ctx.fillRect(x - hw + 5, y - hh + 6, w, h);
+  }
+
+  // Base fill
+  ctx.fillStyle = fill;
+  ctx.fillRect(x - hw, y - hh, w, h);
+
+  // Optional diagonal pencil hatching inside
+  if (hatch) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x - hw, y - hh, w, h);
+    ctx.clip();
+
+    ctx.strokeStyle = 'rgba(24, 34, 48, 0.14)';
+    ctx.lineWidth = 1.2;
+    const step = 9;
+    for (let hx = x - hw - h; hx < x + hw + h; hx += step) {
+      const j = hash2(seed + hx * 0.1, boilFrame) * 1.1;
+      ctx.beginPath();
+      ctx.moveTo(hx + j, y - hh);
+      ctx.lineTo(hx + h * 0.7 + j, y + hh);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Boiling pencil outline
+  const pts = [
+    { x: x - hw, y: y - hh },
+    { x: x + hw, y: y - hh },
+    { x: x + hw, y: y + hh },
+    { x: x - hw, y: y + hh },
+  ];
+  sketchPoly(ctx, pts, true, seed, boilFrame, { lineWidth, wobble, overshoot: 3.5 });
+}
+function createPaperGrainPattern(ctx) {
+  const tile = document.createElement('canvas');
+  tile.width = 180;
+  tile.height = 180;
+  const tctx = tile.getContext('2d');
+
+  // Subtle paper fibers
+  tctx.strokeStyle = 'rgba(30, 45, 65, 0.045)';
+  tctx.lineWidth = 1;
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * 180;
+    const y = Math.random() * 180;
+    const a = Math.random() * Math.PI * 2;
+    const len = 4 + Math.random() * 8;
+    tctx.beginPath();
+    tctx.moveTo(x, y);
+    tctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+    tctx.stroke();
+  }
+
+  // Tiny speckles
+  tctx.fillStyle = 'rgba(24, 34, 48, 0.03)';
+  for (let i = 0; i < 110; i++) {
+    tctx.fillRect(Math.random() * 180, Math.random() * 180, 1.5, 1.5);
+  }
+
+  return ctx.createPattern(tile, 'repeat');
+}
+function sketchArc(ctx, cx, cy, r, startAngle, endAngle, seed, boilFrame, opts = {}) {
+  const {
+    segments = 16,
+    color = INK,
+    lineWidth = 2.0,
+    wobble = 1.6,
+    overshoot = 1.5,
+    passes = 2,
+    alpha = 0.9,
+  } = opts;
+
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const a = startAngle + (endAngle - startAngle) * t;
+    pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+  }
+  sketchPoly(ctx, pts, false, seed, boilFrame, {
+    color,
+    lineWidth,
+    wobble,
+    overshoot,
+    passes,
+    alpha,
+  });
+}
+function sketchCircle(ctx, cx, cy, r, seed, boilFrame, opts = {}) {
+  const {
+    segments = 16,
+    color = INK,
+    lineWidth = 2.0,
+    wobble = 1.6,
+    overshoot = 1.5,
+    passes = 2,
+    alpha = 0.9,
+  } = opts;
+
+  const pts = [];
+  for (let i = 0; i < segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+  }
+  sketchPoly(ctx, pts, true, seed, boilFrame, {
+    color,
+    lineWidth,
+    wobble,
+    overshoot,
+    passes,
+    alpha,
+  });
+}
+function sketchArrow(ctx, x1, y1, x2, y2, seed, boilFrame, opts = {}) {
+  const {
+    color = INK,
+    lineWidth = 2.1,
+    wobble = 1.6,
+    headSize = 11,
+    passes = 2,
+    alpha = 0.88,
+    curve = 0,
+  } = opts;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const nx = -uy;
+  const ny = ux;
+
+  if (Math.abs(curve) > 0.5) {
+    const midX = (x1 + x2) * 0.5 + nx * curve;
+    const midY = (y1 + y2) * 0.5 + ny * curve;
+    sketchLine(ctx, x1, y1, midX, midY, seed, boilFrame, {
+      color,
+      lineWidth,
+      wobble,
+      overshoot: 1.5,
+      passes,
+      alpha,
+    });
+    sketchLine(ctx, midX, midY, x2, y2, seed + 5.7, boilFrame, {
+      color,
+      lineWidth,
+      wobble,
+      overshoot: 1.5,
+      passes,
+      alpha,
+    });
+    const tx = x2 - midX;
+    const ty = y2 - midY;
+    const tlen = Math.hypot(tx, ty) || 1;
+    const tux = tx / tlen;
+    const tuy = ty / tlen;
+    const tnx = -tuy;
+    const tny = tux;
+    const h1x = x2 - tux * headSize + tnx * headSize * 0.55;
+    const h1y = y2 - tuy * headSize + tny * headSize * 0.55;
+    const h2x = x2 - tux * headSize - tnx * headSize * 0.55;
+    const h2y = y2 - tuy * headSize - tny * headSize * 0.55;
+    sketchLine(ctx, h1x, h1y, x2, y2, seed + 13.1, boilFrame, {
+      color,
+      lineWidth,
+      wobble: wobble * 0.8,
+      overshoot: 1.5,
+      passes,
+      alpha,
+    });
+    sketchLine(ctx, h2x, h2y, x2, y2, seed + 19.3, boilFrame, {
+      color,
+      lineWidth,
+      wobble: wobble * 0.8,
+      overshoot: 1.5,
+      passes,
+      alpha,
+    });
+    return;
+  }
+
+  sketchLine(ctx, x1, y1, x2, y2, seed, boilFrame, {
+    color,
+    lineWidth,
+    wobble,
+    overshoot: 2,
+    passes,
+    alpha,
+  });
+
+  const h1x = x2 - ux * headSize + nx * headSize * 0.55;
+  const h1y = y2 - uy * headSize + ny * headSize * 0.55;
+  const h2x = x2 - ux * headSize - nx * headSize * 0.55;
+  const h2y = y2 - uy * headSize - ny * headSize * 0.55;
+  sketchLine(ctx, h1x, h1y, x2, y2, seed + 13.1, boilFrame, {
+    color,
+    lineWidth,
+    wobble: wobble * 0.8,
+    overshoot: 1.5,
+    passes,
+    alpha,
+  });
+  sketchLine(ctx, h2x, h2y, x2, y2, seed + 19.3, boilFrame, {
+    color,
+    lineWidth,
+    wobble: wobble * 0.8,
+    overshoot: 1.5,
+    passes,
+    alpha,
+  });
+}
+function sketchText(ctx, text, x, y, seed, boilFrame, opts = {}) {
+  const {
+    color = INK,
+    fontSize = 18,
+    weight = '700',
+    fontFamily = '"Comic Sans MS", "Chalkboard SE", "Bradley Hand", cursive, sans-serif',
+    align = 'center',
+    baseline = 'middle',
+    wobble = 1.1,
+    alpha = 0.88,
+    tilt = 0,
+    underline = false,
+  } = opts;
+
+  const jx = hash2(seed + 1.3, boilFrame) * wobble;
+  const jy = hash2(seed + 2.9, boilFrame) * wobble;
+  const jRot = tilt + hash2(seed + 4.7, boilFrame) * 0.022;
+
+  ctx.save();
+  ctx.translate(x + jx, y + jy);
+  ctx.rotate(jRot);
+  ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+
+  // Faint secondary graphite pass for hand-lettered boil feel
+  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha * 0.28;
+  ctx.fillText(
+    text,
+    hash2(seed + 8.1, boilFrame) * 1.1 + 0.8,
+    hash2(seed + 9.4, boilFrame) * 1.1 + 0.6
+  );
+
+  ctx.globalAlpha = alpha;
+  ctx.fillText(text, 0, 0);
+
+  if (underline) {
+    const metrics = ctx.measureText(text);
+    const w = metrics.width;
+    const ux1 = align === 'center' ? -w * 0.52 : align === 'right' ? -w : 0;
+    const ux2 = ux1 + w * 1.04;
+    const uy = fontSize * 0.56;
+    sketchLine(ctx, ux1, uy, ux2, uy, seed + 15.2, boilFrame, {
+      color,
+      lineWidth: 1.6,
+      wobble: 1.0,
+      overshoot: 2,
+      passes: 1,
+      alpha: alpha * 0.8,
+    });
+  }
+  ctx.restore();
+}
+
+// --- js/levels.js ---
+// Continuous left-to-right sidescrolling book world (X: 0 -> 400)
+// 4 long middle-school subject chapters with steeper difficulty curve
+const WORLD_DATA = {
+  spawn: { x: 2, y: -2.2 },
+  goal: { x: 400.0, y: 2.8 },
+  sections: [
+    { startX: -14, endX: 100, theme: 'svenska', name: '1. Svenska (Uppvärmning+)' },
+    { startX: 100, endX: 200, theme: 'matte', name: '2. Matematik (Utmanande)' },
+    { startX: 200, endX: 300, theme: 'no', name: '3. NO & Labb (Svår)' },
+    { startX: 300, endX: 416, theme: 'slojd', name: '4. Slöjd & Bild (Mycket svår!)' },
+  ],
+  checkpoints: [
+    { x: 100.0, y: -1.6 },
+    { x: 200.0, y: -1.8 },
+    { x: 300.0, y: -1.4 },
+  ],
+  signs: [
+    {
+      x: 8.0,
+      y: -1.1,
+      text: 'HOPPA!',
+      subtext: '[SPACE / W]',
+      arrowTo: { x: 10.6, y: -2.0 },
+      curve: -12,
+      tilt: -0.05,
+    },
+    {
+      x: 21.8,
+      y: -1.1,
+      text: 'AKTA!',
+      subtext: 'BLÄCKTAGGAR',
+      arrowTo: { x: 22.1, y: -2.7 },
+      curve: 10,
+      tilt: 0.04,
+    },
+    {
+      x: 25.4,
+      y: -0.8,
+      text: 'STUDSA!',
+      subtext: 'SUDDGUMMI',
+      arrowTo: { x: 25.4, y: -2.3 },
+      curve: -8,
+      tilt: -0.03,
+    },
+    {
+      x: 34.4,
+      y: 2.65,
+      text: 'DASH [SHIFT]',
+      subtext: 'ÖVER GAPET',
+      arrowTo: { x: 37.2, y: 1.0 },
+      curve: -14,
+      tilt: 0.02,
+    },
+    {
+      x: 102.0,
+      y: 1.7,
+      text: 'KAPITEL 2: MATEMATIK',
+      subtext: 'LINJALER & VÄGGHOPP',
+      tilt: -0.02,
+    },
+    {
+      x: 202.0,
+      y: 1.7,
+      text: 'KAPITEL 3: NO & LABB',
+      subtext: 'HALA GLASBLOCK & LABBFJÄDRAR',
+      tilt: 0.02,
+    },
+    {
+      x: 302.0,
+      y: 1.9,
+      text: 'KAPITEL 4: SLÖJD & BILD',
+      subtext: 'FINAL — SKÖRA BLOCK & PRECISION!',
+      tilt: -0.02,
+    },
+  ],
+  platforms: [
+    // =========================================================
+    // KAPITEL 1: SVENSKA — Aningen svårare från start (X: 0 -> 100)
+    // =========================================================
+    { x: 4.2, y: -3.8, w: 8.2, h: 0.95, style: 'bookblock' },
+    { x: 11.8, y: -2.5, w: 2.8, h: 0.55, style: 'postit-yellow', tilt: -0.03 },
+    { x: 16.8, y: -1.1, w: 2.6, h: 0.55, style: 'postit-pink', tilt: 0.03 },
+    { x: 22.8, y: -3.6, w: 6.2, h: 0.85, style: 'bookblock' },
+    { x: 24.8, y: -2.9, w: 1.7, h: 0.65, style: 'eraser', bounce: 20.5 },
+    { x: 30.8, y: 1.3, w: 4.6, h: 0.75, style: 'bookblock' },
+    // Bonus star route
+    { x: 36.4, y: 3.0, w: 2.1, h: 0.5, style: 'postit-pink', tilt: 0.04 },
+    { x: 41.8, y: 3.9, w: 2.0, h: 0.5, style: 'postit-yellow', tilt: -0.03 },
+    // Main route
+    { x: 37.8, y: -0.4, w: 2.7, h: 0.55, style: 'postit-mint', tilt: -0.04 },
+    { x: 43.0, y: -1.8, w: 2.6, h: 0.55, style: 'postit-yellow' },
+    // Extended Section 1: book-tower wall-jump + 2-eraser hop
+    { x: 49.0, y: -3.0, w: 4.6, h: 0.85, style: 'bookblock' },
+    { x: 50.8, y: -2.3, w: 1.7, h: 0.65, style: 'eraser', bounce: 20.5 },
+    { x: 55.8, y: 0.8, w: 0.9, h: 5.4, style: 'bookblock' },
+    { x: 60.6, y: 2.2, w: 3.4, h: 0.7, style: 'bookblock' },
+    {
+      x: 67.4,
+      y: 0.8,
+      w: 2.6,
+      h: 0.55,
+      style: 'postit-pink',
+      move: { axis: 'x', range: 1.8, speed: 1.45 },
+    },
+    { x: 74.0, y: -2.6, w: 1.7, h: 0.65, style: 'eraser', bounce: 20.0 },
+    { x: 79.2, y: -1.2, w: 1.7, h: 0.65, style: 'eraser', bounce: 21.0 },
+    { x: 84.8, y: 1.4, w: 2.8, h: 0.65, style: 'bookblock' },
+    { x: 91.6, y: -0.6, w: 2.5, h: 0.55, style: 'postit-mint', tilt: 0.03 },
+    // Checkpoint 1 platform
+    { x: 100.2, y: -2.6, w: 5.2, h: 0.9, style: 'bookblock' },
+
+    // =========================================================
+    // KAPITEL 2: MATEMATIK — Utmanande (X: 100 -> 200)
+    // =========================================================
+    {
+      x: 107.2,
+      y: -1.8,
+      w: 2.8,
+      h: 0.55,
+      style: 'ruler',
+      move: { axis: 'x', range: 2.1, speed: 1.75 },
+    },
+    {
+      x: 114.6,
+      y: -0.6,
+      w: 2.6,
+      h: 0.6,
+      style: 'setsquare',
+      move: { axis: 'x', range: 2.1, speed: 1.9 },
+    },
+    { x: 121.4, y: -3.2, w: 1.75, h: 0.65, style: 'eraser', bounce: 21.5 },
+    { x: 126.0, y: 0.2, w: 0.9, h: 7.2, style: 'mathblock' },
+    { x: 129.2, y: 1.4, w: 0.9, h: 7.2, style: 'mathblock' },
+    { x: 134.4, y: 2.8, w: 3.6, h: 0.7, style: 'setsquare' },
+    {
+      x: 141.6,
+      y: -0.4,
+      w: 2.5,
+      h: 0.55,
+      style: 'ruler',
+      move: { axis: 'y', range: 2.3, speed: 1.95 },
+    },
+    { x: 148.0, y: 1.0, w: 2.4, h: 0.6, style: 'mathblock' },
+    // Second math gauntlet: narrow set-squares + 3-eraser chain
+    { x: 154.2, y: -0.8, w: 2.2, h: 0.55, style: 'setsquare', tilt: -0.04 },
+    {
+      x: 160.4,
+      y: -1.8,
+      w: 2.4,
+      h: 0.55,
+      style: 'ruler',
+      move: { axis: 'x', range: 2.2, speed: 2.0 },
+    },
+    { x: 167.2, y: -3.2, w: 1.7, h: 0.65, style: 'eraser', bounce: 20.5 },
+    { x: 172.6, y: -1.8, w: 1.7, h: 0.65, style: 'eraser', bounce: 21.0 },
+    { x: 178.0, y: -0.4, w: 1.7, h: 0.65, style: 'eraser', bounce: 21.5 },
+    { x: 183.6, y: 2.0, w: 2.2, h: 0.6, style: 'setsquare' },
+    { x: 190.4, y: 0.2, w: 0.9, h: 5.4, style: 'mathblock' },
+    { x: 194.8, y: -1.2, w: 2.2, h: 0.6, style: 'mathblock' },
+    // Checkpoint 2 platform
+    { x: 200.2, y: -2.8, w: 5.0, h: 0.9, style: 'mathblock' },
+
+    // =========================================================
+    // KAPITEL 3: NO & LABB — Svår (X: 200 -> 300)
+    // =========================================================
+    { x: 206.8, y: -1.6, w: 2.4, h: 0.55, style: 'iceblock', slippery: true },
+    { x: 212.6, y: -0.4, w: 2.2, h: 0.55, style: 'iceblock', slippery: true },
+    {
+      x: 219.2,
+      y: 0.4,
+      w: 2.4,
+      h: 0.55,
+      style: 'corkblock',
+      move: { axis: 'x', range: 2.4, speed: 2.15 },
+    },
+    { x: 226.4, y: -3.0, w: 1.65, h: 0.65, style: 'springpad', bounce: 22.5 },
+    { x: 231.6, y: 1.6, w: 2.2, h: 0.55, style: 'iceblock', slippery: true },
+    { x: 236.8, y: 2.0, w: 0.85, h: 5.4, style: 'corkblock' },
+    { x: 242.2, y: 0.4, w: 2.1, h: 0.55, style: 'iceblock', slippery: true },
+    {
+      x: 248.2,
+      y: -0.6,
+      w: 2.1,
+      h: 0.55,
+      style: 'corkblock',
+      move: { axis: 'y', range: 2.4, speed: 2.3 },
+    },
+    // Long slippery ice-run + springpad bounces over acid/ink pit
+    { x: 254.6, y: 1.6, w: 2.8, h: 0.55, style: 'iceblock', slippery: true },
+    { x: 260.8, y: 0.6, w: 2.2, h: 0.55, style: 'iceblock', slippery: true },
+    { x: 266.8, y: -2.8, w: 1.6, h: 0.65, style: 'springpad', bounce: 21.5 },
+    { x: 272.2, y: -1.4, w: 1.6, h: 0.65, style: 'springpad', bounce: 22.0 },
+    { x: 277.8, y: 1.2, w: 2.0, h: 0.55, style: 'iceblock', slippery: true },
+    {
+      x: 284.2,
+      y: 0.2,
+      w: 2.1,
+      h: 0.55,
+      style: 'corkblock',
+      move: { axis: 'x', range: 2.3, speed: 2.35 },
+    },
+    { x: 291.2, y: -1.8, w: 1.6, h: 0.65, style: 'springpad', bounce: 21.5 },
+    { x: 295.8, y: 0.8, w: 2.0, h: 0.55, style: 'corkblock' },
+    // Checkpoint 3 platform
+    { x: 300.2, y: -2.4, w: 4.8, h: 0.85, style: 'corkblock' },
+
+    // =========================================================
+    // KAPITEL 4: SLÖJD & BILD — Väldigt svår Final! (X: 300 -> 400)
+    // =========================================================
+    {
+      x: 306.4,
+      y: -0.6,
+      w: 2.0,
+      h: 0.55,
+      style: 'woodblock',
+      move: { axis: 'y', range: 2.3, speed: 2.45 },
+    },
+    { x: 312.2, y: 1.4, w: 0.8, h: 5.6, style: 'woodblock' },
+    { x: 316.0, y: 2.4, w: 0.8, h: 5.6, style: 'woodblock' },
+    // Rapid crumble-paper chain!
+    { x: 321.4, y: 0.8, w: 1.9, h: 0.5, style: 'crumble', crumble: true },
+    { x: 327.2, y: 1.6, w: 1.9, h: 0.5, style: 'crumble', crumble: true },
+    { x: 333.0, y: 0.4, w: 1.9, h: 0.5, style: 'crumble', crumble: true },
+    // 4-bounce high-speed rhythm chain over giant spike pit
+    { x: 338.8, y: -2.8, w: 1.5, h: 0.6, style: 'eraser', bounce: 20.5 },
+    { x: 344.2, y: -1.8, w: 1.5, h: 0.6, style: 'springpad', bounce: 21.5 },
+    { x: 349.6, y: -1.0, w: 1.5, h: 0.6, style: 'eraser', bounce: 22.0 },
+    { x: 355.2, y: -0.2, w: 1.5, h: 0.6, style: 'springpad', bounce: 22.8 },
+    // Fast moving wood plank + crumble + double wall-climb to Goal!
+    {
+      x: 363.0,
+      y: 1.6,
+      w: 2.0,
+      h: 0.55,
+      style: 'woodblock',
+      move: { axis: 'x', range: 2.5, speed: 2.6 },
+    },
+    { x: 370.8, y: 2.0, w: 1.8, h: 0.5, style: 'crumble', crumble: true },
+    { x: 376.6, y: 0.4, w: 0.8, h: 5.4, style: 'woodblock' },
+    { x: 380.4, y: 1.8, w: 0.8, h: 5.4, style: 'woodblock' },
+    { x: 385.8, y: 2.6, w: 1.75, h: 0.5, style: 'crumble', crumble: true },
+    {
+      x: 392.2,
+      y: 1.4,
+      w: 1.9,
+      h: 0.55,
+      style: 'woodblock',
+      move: { axis: 'y', range: 2.0, speed: 2.65 },
+    },
+    // Final goal platform!
+    { x: 399.6, y: 1.7, w: 4.8, h: 0.85, style: 'woodblock' },
+  ],
+  hazards: [
+    // Kapitel 1
+    { x: 21.8, y: -3.15, w: 1.8, h: 0.25 },
+    { x: 48.0, y: -2.55, w: 1.5, h: 0.25 },
+    { x: 76.6, y: -4.6, w: 7.4, h: 0.25 },
+    // Kapitel 2
+    { x: 121.4, y: -4.6, w: 5.4, h: 0.25 },
+    { x: 127.6, y: -3.4, w: 2.1, h: 0.25 },
+    { x: 172.6, y: -4.8, w: 13.0, h: 0.25 },
+    // Kapitel 3
+    { x: 226.4, y: -4.6, w: 6.4, h: 0.25 },
+    { x: 248.2, y: -4.6, w: 6.8, h: 0.25 },
+    { x: 269.5, y: -4.6, w: 8.6, h: 0.25 },
+    { x: 291.2, y: -4.6, w: 5.2, h: 0.25 },
+    // Kapitel 4
+    { x: 327.2, y: -4.6, w: 14.0, h: 0.25 },
+    { x: 347.0, y: -4.6, w: 19.0, h: 0.25 },
+    { x: 378.5, y: -4.6, w: 17.0, h: 0.25 },
+  ],
+  stars: [
+    // Kapitel 1 (6 stars)
+    { x: 16.8, y: 0.1 },
+    { x: 30.8, y: 2.5 },
+    { x: 41.8, y: 5.0 },
+    { x: 55.8, y: 4.2 },
+    { x: 67.4, y: 2.4 },
+    { x: 84.8, y: 2.8 },
+    // Kapitel 2 (6 stars)
+    { x: 114.6, y: 1.0 },
+    { x: 127.6, y: 0.8 },
+    { x: 134.4, y: 4.1 },
+    { x: 141.6, y: 2.8 },
+    { x: 160.4, y: -0.2 },
+    { x: 183.6, y: 3.4 },
+    // Kapitel 3 (6 stars)
+    { x: 212.6, y: 1.0 },
+    { x: 231.6, y: 3.0 },
+    { x: 236.8, y: 5.4 },
+    { x: 254.6, y: 3.0 },
+    { x: 269.5, y: 3.0 },
+    { x: 284.2, y: 1.8 },
+    // Kapitel 4 (6 stars)
+    { x: 314.1, y: 2.6 },
+    { x: 327.2, y: 3.0 },
+    { x: 346.9, y: 3.0 },
+    { x: 363.0, y: 3.2 },
+    { x: 378.5, y: 2.8 },
+    { x: 392.2, y: 4.2 },
+  ],
+};
+
+// --- js/book.js ---
+const PPU = 54; // Pixels per world unit
+class BookWorld {
+  constructor() {
+    this.sections = [];
+    this.platforms = [];
+    this.hazards = [];
+    this.stars = [];
+    this.checkpoints = [];
+    this.goal = null;
+    this.signs = [];
+    this.doodles = [];
+    this.motes = [];
+    this.paperPattern = null;
+    this.creaseGrad = null;
+  }
+
+  loadWorld(worldData) {
+    this.sections = worldData.sections;
+
+    this.platforms = worldData.platforms.map((p, idx) => ({
+      ...p,
+      baseX: p.x,
+      baseY: p.y,
+      prevX: p.x,
+      prevY: p.y,
+      bounce: p.bounce || 0,
+      bounceAnim: 0,
+      crumble: Boolean(p.crumble),
+      crumbleState: 'solid',
+      crumbleTimer: 0,
+      slippery: Boolean(p.slippery),
+      seed: 100 + idx * 31.7,
+    }));
+
+    this.hazards = worldData.hazards.map((h, idx) => ({
+      ...h,
+      seed: 900 + idx * 27.3,
+    }));
+
+    this.stars = worldData.stars.map((s, idx) => ({
+      ...s,
+      baseY: s.y,
+      collected: false,
+      seed: 1500 + idx * 19.1,
+    }));
+
+    this.checkpoints = worldData.checkpoints.map((cp, idx) => ({
+      ...cp,
+      activated: false,
+      seed: 2100 + idx * 23.9,
+    }));
+
+    this.goal = { ...worldData.goal, radius: 1.0, seed: 2800 };
+
+    // Tutorial & custom paper signposts
+    this.signs = (worldData.signs || []).map((s, idx) => ({
+      ...s,
+      seed: 4200 + idx * 37.1,
+    }));
+
+    // Section-specific background hand-drawn pencil doodles
+    this.doodles = this._buildSectionDoodles(this.sections);
+
+    // Floating graphite dust motes
+    this.motes = [];
+    for (let i = 0; i < 150; i++) {
+      this.motes.push({
+        x: Math.random() * 420 - 5,
+        y: (Math.random() - 0.5) * 13,
+        phase: Math.random() * Math.PI * 2,
+        r: 1.2 + Math.random() * 1.4,
+      });
+    }
+  }
+
+  update(time, dt) {
+    for (const p of this.platforms) {
+      p.prevX = p.x;
+      p.prevY = p.y;
+      if (p.move) {
+        const offset = Math.sin(time * p.move.speed) * p.move.range;
+        if (p.move.axis === 'x') p.x = p.baseX + offset;
+        else p.y = p.baseY + offset;
+      }
+
+      if (p.bounceAnim > 0) {
+        p.bounceAnim = Math.max(0, p.bounceAnim - dt * 5.5);
+      }
+
+      if (p.crumble) {
+        if (p.crumbleState === 'shaking') {
+          p.crumbleTimer -= dt;
+          if (p.crumbleTimer <= 0) {
+            p.crumbleState = 'fallen';
+            p.crumbleTimer = 2.4;
+          }
+        } else if (p.crumbleState === 'fallen') {
+          p.crumbleTimer -= dt;
+          if (p.crumbleTimer <= 0) {
+            p.crumbleState = 'solid';
+          }
+        }
+      }
+    }
+
+    for (const s of this.stars) {
+      if (!s.collected) {
+        s.y = s.baseY + Math.sin(time * 3.2 + s.x) * 0.12;
+      }
+    }
+  }
+
+  draw(ctx, camX, camY, viewW, viewH, time) {
+    if (!this.paperPattern) {
+      this.paperPattern = createPaperGrainPattern(ctx);
+    }
+
+    const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+
+    // 1. Paper section backgrounds
+    const leftWorldX = camX - viewW / (2 * PPU) - 1;
+    const rightWorldX = camX + viewW / (2 * PPU) + 1;
+    const topWorldY = camY + viewH / (2 * PPU) + 1;
+    const bottomWorldY = camY - viewH / (2 * PPU) - 1;
+
+    ctx.save();
+    // World transform: center of screen is (camX, camY), +Y is UP
+    ctx.translate(viewW / 2, viewH / 2);
+    ctx.scale(PPU, -PPU);
+    ctx.translate(-camX, -camY);
+
+    // Draw section paper fills
+    for (const sec of this.sections) {
+      if (sec.endX < leftWorldX || sec.startX > rightWorldX) continue;
+      const sx = Math.max(sec.startX, leftWorldX);
+      const ex = Math.min(sec.endX, rightWorldX);
+      const bgMap = {
+        svenska: '#eef4fa',
+        matte: '#e7f1f6',
+        no: '#e5f3f3',
+        slojd: '#eaedf5',
+      };
+      ctx.fillStyle = bgMap[sec.theme] || '#eaedf5';
+      ctx.fillRect(sx, bottomWorldY, ex - sx, topWorldY - bottomWorldY);
+    }
+
+    ctx.restore();
+
+    // Overlay paper fiber grain in screen space
+    if (this.paperPattern) {
+      ctx.save();
+      ctx.fillStyle = this.paperPattern;
+      ctx.fillRect(0, 0, viewW, viewH);
+      ctx.restore();
+    }
+
+    // Helper: world -> screen coords
+    const toSX = (wx) => viewW / 2 + (wx - camX) * PPU;
+    const toSY = (wy) => viewH / 2 - (wy - camY) * PPU;
+
+    // 2. Draw paper lines / grids / page creases in screen space for crisp 1px-2px strokes
+    this._drawPaperMarkings(ctx, leftWorldX, rightWorldX, topWorldY, bottomWorldY, toSX, toSY, viewH, boilFrame);
+
+    // 3. Section-specific background boiling pencil doodles
+    for (const d of this.doodles) {
+      if (d.x < leftWorldX - 3 || d.x > rightWorldX + 3) continue;
+      this._drawDoodle(ctx, d, toSX, toSY, boilFrame);
+    }
+
+    // 4. Platforms (+ moving platform tracks, highlights, motion lines & optional labels)
+    for (const p of this.platforms) {
+      if (p.move) {
+        const minX = p.move.axis === 'x' ? p.baseX - p.move.range : p.x;
+        const maxX = p.move.axis === 'x' ? p.baseX + p.move.range : p.x;
+        if (maxX + p.w / 2 >= leftWorldX && minX - p.w / 2 <= rightWorldX) {
+          this._drawMovingPlatformTrack(ctx, p, toSX, toSY, boilFrame);
+        }
+      }
+
+      if (p.x + p.w / 2 < leftWorldX || p.x - p.w / 2 > rightWorldX) continue;
+      const sx = toSX(p.x);
+      const sy = toSY(p.y);
+      const pw = p.w * PPU;
+      const ph = p.h * PPU;
+
+      ctx.save();
+      const shakeSeed = p.seed + Math.floor(time * 32) * 1.7;
+      const shakeX = p.crumbleState === 'shaking' ? hash2(shakeSeed, boilFrame) * 3.2 : 0;
+      const shakeY = p.crumbleState === 'shaking' ? hash2(shakeSeed + 5.1, boilFrame) * 2.6 : 0;
+      ctx.translate(sx + shakeX, sy + shakeY);
+      if (p.tilt) ctx.rotate(-p.tilt);
+      if (p.bounceAnim > 0) {
+        const s = Math.sin(p.bounceAnim * Math.PI) * 0.28;
+        ctx.scale(1 + s * 0.5, 1 - s);
+      }
+
+      if (p.crumbleState === 'fallen') {
+        // Faint dashed outline showing where the block will respawn
+        ctx.save();
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'rgba(24, 34, 48, 0.25)';
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
+        ctx.restore();
+      } else if (p.style === 'ruler') {
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#c4d3e3', hatch: false });
+        const tickCount = Math.floor(p.w * 2.5);
+        for (let i = 1; i < tickCount; i++) {
+          const tx = -pw / 2 + (i / tickCount) * pw;
+          const th = i % 4 === 0 ? ph * 0.42 : ph * 0.24;
+          sketchLine(ctx, tx, -ph / 2, tx, -ph / 2 + th, p.seed + i * 3.1, boilFrame, {
+            lineWidth: 1.5,
+            wobble: 0.9,
+            overshoot: 1,
+            passes: 1,
+          });
+        }
+      } else if (p.style === 'bookblock') {
+        // Svenska: textbook with spine & page lines
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#cbd5e1', hatch: false });
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(-pw / 2 + 2, -ph / 2 + 2, 12, ph - 4);
+        sketchLine(ctx, -pw / 2 + 14, -ph / 2, -pw / 2 + 14, ph / 2, p.seed + 4, boilFrame, {
+          lineWidth: 1.6,
+          overshoot: 1,
+          passes: 1,
+        });
+        sketchLine(ctx, -pw / 2 + 20, -2, pw / 2 - 8, -2, p.seed + 8, boilFrame, {
+          color: 'rgba(24, 34, 48, 0.25)',
+          lineWidth: 1.2,
+          passes: 1,
+        });
+        sketchLine(ctx, -pw / 2 + 20, 4, pw / 2 - 14, 4, p.seed + 12, boilFrame, {
+          color: 'rgba(24, 34, 48, 0.25)',
+          lineWidth: 1.2,
+          passes: 1,
+        });
+      } else if (p.style === 'setsquare') {
+        // Matematik: drafting set-square with inner cutout & ticks
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#bae6fd', hatch: false });
+        if (pw > 60 && ph > 22) {
+          sketchLine(ctx, -pw * 0.25, 0, pw * 0.25, 0, p.seed + 5, boilFrame, {
+            color: 'rgba(14, 116, 144, 0.45)',
+            lineWidth: 1.4,
+            passes: 1,
+          });
+        }
+        for (let i = 1; i < Math.floor(p.w * 2); i++) {
+          const tx = -pw / 2 + (i / (p.w * 2)) * pw;
+          sketchLine(ctx, tx, ph / 2, tx, ph / 2 - 6, p.seed + i * 2.1, boilFrame, {
+            lineWidth: 1.2,
+            passes: 1,
+          });
+        }
+      } else if (p.style === 'mathblock') {
+        // Matematik: grid block
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#e0f2fe', hatch: false });
+        ctx.save();
+        ctx.strokeStyle = 'rgba(14, 116, 144, 0.24)';
+        ctx.lineWidth = 1;
+        for (let gx = -pw / 2 + 14; gx < pw / 2; gx += 14) {
+          ctx.beginPath();
+          ctx.moveTo(gx, -ph / 2);
+          ctx.lineTo(gx, ph / 2);
+          ctx.stroke();
+        }
+        for (let gy = -ph / 2 + 14; gy < ph / 2; gy += 14) {
+          ctx.beginPath();
+          ctx.moveTo(-pw / 2, gy);
+          ctx.lineTo(pw / 2, gy);
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else if (p.style === 'iceblock') {
+        // NO & Labb: slippery glass/ice block with frost sheen
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#cffafe', hatch: false });
+        sketchLine(ctx, -pw * 0.35, -ph * 0.2, -pw * 0.15, ph * 0.25, p.seed + 3, boilFrame, {
+          color: '#ffffff',
+          lineWidth: 2.2,
+          passes: 1,
+        });
+        sketchLine(ctx, pw * 0.05, -ph * 0.25, pw * 0.25, ph * 0.2, p.seed + 7, boilFrame, {
+          color: '#ffffff',
+          lineWidth: 2.2,
+          passes: 1,
+        });
+      } else if (p.style === 'springpad') {
+        // NO & Labb: bubbling high-bounce lab pad
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#a5f3fc', hatch: false });
+        for (let b = -1; b <= 1; b++) {
+          sketchCircle(ctx, b * (pw * 0.22), 0, 4.5, p.seed + b * 9, boilFrame, {
+            color: '#0e7490',
+            lineWidth: 1.6,
+            passes: 1,
+          });
+        }
+      } else if (p.style === 'corkblock') {
+        // NO & Labb: speckled corkboard block
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#cbd5e1', hatch: true });
+      } else if (p.style === 'woodblock') {
+        // Slöjd & Bild: carpenter wood plank with grain & nail dots
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#d8e2ec', hatch: false });
+        sketchLine(ctx, -pw / 2 + 8, -ph * 0.15, pw / 2 - 8, -ph * 0.1, p.seed + 3, boilFrame, {
+          color: 'rgba(51, 65, 85, 0.3)',
+          lineWidth: 1.3,
+          passes: 1,
+        });
+        sketchLine(ctx, -pw / 2 + 12, ph * 0.18, pw / 2 - 10, ph * 0.14, p.seed + 7, boilFrame, {
+          color: 'rgba(51, 65, 85, 0.3)',
+          lineWidth: 1.3,
+          passes: 1,
+        });
+      } else if (p.style === 'crumble') {
+        // Slöjd & Bild: fragile crumbling paper block
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, {
+          fill: p.crumbleState === 'shaking' ? '#fecdd3' : '#f1f5f9',
+          hatch: false,
+          lineWidth: 1.8,
+        });
+        // Crack line in middle
+        sketchLine(ctx, -6, -ph / 2, 4, ph / 2, p.seed + 19, boilFrame, {
+          color: 'rgba(24, 34, 48, 0.5)',
+          lineWidth: 1.4,
+          passes: 1,
+        });
+      } else if (p.style === 'eraser') {
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#e2ecf5', hatch: false });
+        ctx.fillStyle = '#5b8ec9';
+        ctx.fillRect(pw * 0.18, -ph / 2 + 1, pw * 0.32 - 1, ph - 2);
+        sketchLine(ctx, pw * 0.18, -ph / 2, pw * 0.18, ph / 2, p.seed + 9, boilFrame, {
+          lineWidth: 2,
+          overshoot: 1.5,
+        });
+      } else if (p.style.startsWith('postit')) {
+        const colorMap = {
+          'postit-yellow': '#b8e4f9',
+          'postit-pink': '#cbd5f0',
+          'postit-mint': '#b3ebe2',
+        };
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, {
+          fill: colorMap[p.style] || '#b8e4f9',
+          hatch: false,
+        });
+      } else {
+        sketchRect(ctx, 0, 0, pw, ph, p.seed, boilFrame, { fill: '#d5e1ee', hatch: true });
+      }
+
+      if (p.move) {
+        this._drawMovingPlatformEffects(ctx, p, pw, ph, time, boilFrame);
+      }
+      ctx.restore();
+
+      if (p.label) {
+        this._drawPlatformLabel(ctx, p, sx, sy, ph, boilFrame);
+      }
+    }
+
+    // 4b. Paper tutorial & world signposts
+    for (const sign of this.signs) {
+      if (sign.x < leftWorldX - 4 || sign.x > rightWorldX + 4) continue;
+      this._drawSign(ctx, sign, toSX, toSY, boilFrame);
+    }
+
+    // 5. Hazards (sketchy ink spikes)
+    for (const h of this.hazards) {
+      if (h.x + h.w / 2 < leftWorldX || h.x - h.w / 2 > rightWorldX) continue;
+      const sx = toSX(h.x);
+      const sy = toSY(h.y);
+      const hw = h.w * PPU;
+      const hh = h.h * PPU;
+
+      sketchRect(ctx, sx, sy, hw, hh, h.seed, boilFrame, {
+        fill: '#182230',
+        shadow: false,
+        lineWidth: 2,
+      });
+
+      const spikeCount = Math.max(3, Math.floor(h.w / 0.45));
+      for (let i = 0; i < spikeCount; i++) {
+        const t = spikeCount === 1 ? 0 : i / (spikeCount - 1) - 0.5;
+        const cx = sx + t * (hw - 16);
+        const by = sy - hh / 2;
+        const ty = by - 14;
+        ctx.fillStyle = '#182230';
+        ctx.beginPath();
+        ctx.moveTo(cx - 7, by);
+        ctx.lineTo(cx, ty);
+        ctx.lineTo(cx + 7, by);
+        ctx.closePath();
+        ctx.fill();
+        sketchPoly(
+          ctx,
+          [
+            { x: cx - 7, y: by },
+            { x: cx, y: ty },
+            { x: cx + 7, y: by },
+          ],
+          false,
+          h.seed + i * 7.3,
+          boilFrame,
+          { lineWidth: 2, wobble: 1.6, overshoot: 2 }
+        );
+      }
+    }
+
+    // 6. Checkpoints (sketchy pin flags with crisp highlights & flutter lines)
+    for (const cp of this.checkpoints) {
+      if (cp.x < leftWorldX - 2 || cp.x > rightWorldX + 2) continue;
+      this._drawCheckpoint(ctx, cp, toSX, toSY, time, boilFrame);
+    }
+
+    // 7. Stars
+    for (const s of this.stars) {
+      if (s.collected || s.x < leftWorldX - 1 || s.x > rightWorldX + 1) continue;
+      const sx = toSX(s.x);
+      const sy = toSY(s.y);
+      const pts = [];
+      for (let i = 0; i < 10; i++) {
+        const r = (i % 2 === 0 ? 0.38 : 0.16) * PPU;
+        const angle = (i * Math.PI) / 5 - Math.PI / 2 + Math.sin(time * 2 + s.x) * 0.12;
+        pts.push({ x: sx + Math.cos(angle) * r, y: sy + Math.sin(angle) * r });
+      }
+      ctx.save();
+      ctx.fillStyle = 'rgba(24, 34, 48, 0.14)';
+      ctx.beginPath();
+      pts.forEach((p, idx) => (idx === 0 ? ctx.moveTo(p.x + 4, p.y + 5) : ctx.lineTo(p.x + 4, p.y + 5)));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#67e8f9';
+      ctx.beginPath();
+      pts.forEach((p, idx) => (idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      sketchPoly(ctx, pts, true, s.seed, boilFrame, { lineWidth: 2.1, wobble: 1.7, overshoot: 2 });
+    }
+
+    // 8. Goal Bookmark Ribbon
+    if (this.goal && this.goal.x > leftWorldX - 2 && this.goal.x < rightWorldX + 2) {
+      const sx = toSX(this.goal.x);
+      const sy = toSY(this.goal.y);
+      const sway = Math.sin(time * 2.5) * 4;
+      const pts = [
+        { x: sx - 20, y: sy - 44 },
+        { x: sx + 20, y: sy - 44 },
+        { x: sx + 20 + sway, y: sy + 38 },
+        { x: sx + sway, y: sy + 18 },
+        { x: sx - 20 + sway, y: sy + 38 },
+      ];
+      ctx.save();
+      ctx.fillStyle = 'rgba(24, 34, 48, 0.16)';
+      ctx.beginPath();
+      pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x + 5, p.y + 6) : ctx.lineTo(p.x + 5, p.y + 6)));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      sketchPoly(ctx, pts, true, this.goal.seed, boilFrame, { lineWidth: 2.4, wobble: 1.8 });
+    }
+
+    // 9. Floating graphite dust motes
+    ctx.save();
+    ctx.fillStyle = 'rgba(71, 85, 105, 0.25)';
+    for (const m of this.motes) {
+      if (m.x < leftWorldX || m.x > rightWorldX) continue;
+      const sx = toSX(m.x);
+      const sy = toSY(m.y + Math.sin(time * 0.8 + m.phase) * 0.25);
+      ctx.beginPath();
+      ctx.arc(sx, sy, m.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  _drawPaperMarkings(ctx, leftWX, rightWX, topWY, bottomWY, toSX, toSY, viewH, boilFrame) {
+    ctx.save();
+    for (const sec of this.sections) {
+      if (sec.endX < leftWX || sec.startX > rightWX) continue;
+      const sx1 = Math.max(0, toSX(sec.startX));
+      const sx2 = toSX(sec.endX);
+
+      if (sec.theme === 'svenska') {
+        ctx.strokeStyle = 'rgba(37, 99, 235, 0.2)';
+        ctx.lineWidth = 1.4;
+        const startY = Math.floor(bottomWY);
+        for (let wy = startY; wy <= topWY; wy += 1.0) {
+          const sy = toSY(wy) + hash2(wy * 7.1, boilFrame) * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(sx1, sy);
+          ctx.lineTo(sx2, sy);
+          ctx.stroke();
+        }
+      } else if (sec.theme === 'matte') {
+        ctx.strokeStyle = 'rgba(14, 116, 144, 0.16)';
+        ctx.lineWidth = 1.1;
+        const startX = Math.max(sec.startX, Math.floor(leftWX));
+        for (let wx = startX; wx <= Math.min(sec.endX, rightWX); wx += 1.0) {
+          const sx = toSX(wx) + hash2(wx * 5.3, boilFrame) * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(sx, 0);
+          ctx.lineTo(sx, viewH);
+          ctx.stroke();
+        }
+        for (let wy = Math.floor(bottomWY); wy <= topWY; wy += 1.0) {
+          const sy = toSY(wy) + hash2(wy * 5.3, boilFrame) * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(sx1, sy);
+          ctx.lineTo(sx2, sy);
+          ctx.stroke();
+        }
+      } else if (sec.theme === 'no') {
+        // Dotted lab notebook grid
+        ctx.fillStyle = 'rgba(13, 148, 136, 0.25)';
+        const startX = Math.max(sec.startX, Math.floor(leftWX));
+        for (let wx = startX; wx <= Math.min(sec.endX, rightWX); wx += 1.0) {
+          const sx = toSX(wx);
+          for (let wy = Math.floor(bottomWY); wy <= topWY; wy += 1.0) {
+            const sy = toSY(wy);
+            ctx.fillRect(sx - 1, sy - 1, 2, 2);
+          }
+        }
+      } else {
+        // Sketchbook wide guide lines
+        ctx.strokeStyle = 'rgba(51, 65, 85, 0.12)';
+        ctx.lineWidth = 1.3;
+        for (let wy = Math.floor(bottomWY / 2) * 2; wy <= topWY; wy += 2.0) {
+          const sy = toSY(wy) + hash2(wy * 3.7, boilFrame) * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(sx1, sy);
+          ctx.lineTo(sx2, sy);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Vertical page-crease seams every 24 world units
+    if (!this.creaseGrad) {
+      const grad = ctx.createLinearGradient(-18, 0, 18, 0);
+      grad.addColorStop(0, 'rgba(15, 23, 42, 0)');
+      grad.addColorStop(0.5, 'rgba(15, 23, 42, 0.08)');
+      grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      this.creaseGrad = grad;
+    }
+
+    for (let wx = 24; wx <= 408; wx += 24) {
+      if (wx < leftWX || wx > rightWX) continue;
+      const sx = toSX(wx);
+      ctx.save();
+      ctx.translate(sx, 0);
+      ctx.fillStyle = this.creaseGrad;
+      ctx.fillRect(-18, 0, 36, viewH);
+      ctx.restore();
+
+      sketchLine(ctx, sx, 0, sx, viewH, wx * 13, boilFrame, {
+        color: 'rgba(51, 65, 85, 0.25)',
+        lineWidth: 1.5,
+        wobble: 1.5,
+        passes: 1,
+      });
+    }
+    ctx.restore();
+  }
+
+  _buildSectionDoodles(sections) {
+    const doodles = [];
+    const themeKinds = {
+      svenska: ['abc', 'pencil', 'book', 'quote', 'spiral', 'paperclip', 'squiggle'],
+      matte: ['triangle', 'compass', 'pi', 'math_eq', 'protractor', 'cube'],
+      no: ['flask', 'atom', 'dna', 'leaf', 'magnet'],
+      slojd: ['scissors', 'hammer', 'brush', 'saw', 'plane', 'mountains'],
+    };
+
+    for (let sIdx = 0; sIdx < sections.length; sIdx++) {
+      const sec = sections[sIdx];
+      const pool = themeKinds[sec.theme] || themeKinds.slojd;
+      const minX = Math.max(sec.startX + 4, 4);
+      const maxX = Math.min(sec.endX - 4, 408);
+      const span = Math.max(10, maxX - minX);
+      const count = Math.max(6, Math.round(span / 6.2));
+
+      for (let i = 0; i < count; i++) {
+        const x = minX + ((i + 0.5) / count) * span;
+        const y = i % 2 === 0 ? 3.2 + (i % 3) * 0.65 : -3.8 - (i % 3) * 0.45;
+        doodles.push({
+          x,
+          y,
+          kind: pool[i % pool.length],
+          seed: 3300 + sIdx * 211 + i * 41.2,
+        });
+      }
+    }
+    return doodles;
+  }
+
+  _drawDoodle(ctx, d, toSX, toSY, boilFrame) {
+    const sx = toSX(d.x);
+    const sy = toSY(d.y);
+    const r = 0.65 * PPU;
+    const strokeOpts = {
+      color: 'rgba(71, 85, 105, 0.32)',
+      lineWidth: 1.7,
+      wobble: 1.8,
+      overshoot: 1.8,
+      passes: 1,
+    };
+
+    switch (d.kind) {
+      case 'spiral': {
+        const pts = [];
+        const steps = 26;
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const a = t * Math.PI * 4.5;
+          const rad = t * r * 0.95;
+          pts.push({ x: sx + Math.cos(a) * rad, y: sy + Math.sin(a) * rad });
+        }
+        sketchPoly(ctx, pts, false, d.seed, boilFrame, strokeOpts);
+        break;
+      }
+      case 'paperclip': {
+        const w = r * 0.48;
+        const h = r * 0.95;
+        const pts = [
+          { x: sx - w * 0.4, y: sy + h * 0.35 },
+          { x: sx - w * 0.4, y: sy - h * 0.65 },
+          { x: sx + w * 0.45, y: sy - h * 0.65 },
+          { x: sx + w * 0.45, y: sy + h * 0.7 },
+          { x: sx - w * 0.75, y: sy + h * 0.7 },
+          { x: sx - w * 0.75, y: sy - h * 0.9 },
+          { x: sx + w * 0.75, y: sy - h * 0.9 },
+          { x: sx + w * 0.75, y: sy + h * 0.25 },
+        ];
+        sketchPoly(ctx, pts, false, d.seed, boilFrame, strokeOpts);
+        break;
+      }
+      case 'squiggle': {
+        const pts = [];
+        for (let i = 0; i <= 12; i++) {
+          const t = i / 12 - 0.5;
+          pts.push({
+            x: sx + t * r * 2.1,
+            y: sy + Math.sin(i * 1.4) * r * 0.38,
+          });
+        }
+        sketchPoly(ctx, pts, false, d.seed, boilFrame, strokeOpts);
+        break;
+      }
+      case 'triangle': {
+        // Right triangle with right-angle square & angle arc
+        const ax = sx - r * 0.85;
+        const ay = sy + r * 0.65;
+        const bx = sx + r * 0.85;
+        const by = sy + r * 0.65;
+        const cx = sx - r * 0.85;
+        const cy = sy - r * 0.75;
+        sketchPoly(ctx, [{ x: ax, y: ay }, { x: bx, y: by }, { x: cx, y: cy }], true, d.seed, boilFrame, strokeOpts);
+        const sq = r * 0.28;
+        sketchPoly(
+          ctx,
+          [{ x: ax, y: ay - sq }, { x: ax + sq, y: ay - sq }, { x: ax + sq, y: ay }],
+          false,
+          d.seed + 7,
+          boilFrame,
+          strokeOpts
+        );
+        sketchArc(ctx, bx, by, r * 0.42, Math.PI, Math.PI + 0.68, d.seed + 13, boilFrame, {
+          ...strokeOpts,
+          segments: 6,
+        });
+        break;
+      }
+      case 'compass': {
+        // Drafting compass with head, legs & dashed arc
+        const topY = sy - r * 0.95;
+        sketchCircle(ctx, sx, topY, r * 0.16, d.seed, boilFrame, { ...strokeOpts, segments: 10 });
+        sketchLine(ctx, sx - r * 0.08, topY + r * 0.14, sx - r * 0.58, sy + r * 0.75, d.seed + 3, boilFrame, strokeOpts);
+        sketchLine(ctx, sx + r * 0.08, topY + r * 0.14, sx + r * 0.58, sy + r * 0.75, d.seed + 6, boilFrame, strokeOpts);
+        sketchArc(ctx, sx - r * 0.58, sy + r * 0.75, r * 1.15, -0.5, 0.25, d.seed + 11, boilFrame, {
+          ...strokeOpts,
+          segments: 8,
+        });
+        break;
+      }
+      case 'pi': {
+        // Hand-drawn pi symbol & small reference circle
+        sketchLine(ctx, sx - r * 0.75, sy - r * 0.45, sx + r * 0.75, sy - r * 0.5, d.seed, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.3, sy - r * 0.47, sx - r * 0.42, sy + r * 0.55, d.seed + 4, boilFrame, strokeOpts);
+        sketchLine(ctx, sx + r * 0.28, sy - r * 0.48, sx + r * 0.32, sy + r * 0.55, d.seed + 8, boilFrame, strokeOpts);
+        sketchCircle(ctx, sx + r * 1.1, sy - r * 0.1, r * 0.32, d.seed + 14, boilFrame, {
+          ...strokeOpts,
+          segments: 12,
+        });
+        break;
+      }
+      case 'plane': {
+        // Folded paper airplane with trailing flight dashes
+        const pts = [
+          { x: sx - r * 0.9, y: sy + r * 0.1 },
+          { x: sx + r * 0.95, y: sy - r * 0.35 },
+          { x: sx - r * 0.45, y: sy + r * 0.65 },
+        ];
+        sketchPoly(ctx, pts, true, d.seed, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.25, sy + r * 0.28, sx + r * 0.95, sy - r * 0.35, d.seed + 5, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 1.65, sy + r * 0.42, sx - r * 1.15, sy + r * 0.22, d.seed + 9, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 2.25, sy + r * 0.58, sx - r * 1.85, sy + r * 0.48, d.seed + 12, boilFrame, strokeOpts);
+        break;
+      }
+      case 'mountains': {
+        // Layered sketchy mountain peaks & small sun
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - r * 1.25, y: sy + r * 0.65 },
+            { x: sx - r * 0.35, y: sy - r * 0.7 },
+            { x: sx + r * 0.45, y: sy + r * 0.65 },
+          ],
+          false,
+          d.seed,
+          boilFrame,
+          strokeOpts
+        );
+        sketchPoly(
+          ctx,
+          [
+            { x: sx + r * 0.05, y: sy + r * 0.25 },
+            { x: sx + r * 0.65, y: sy - r * 0.55 },
+            { x: sx + r * 1.3, y: sy + r * 0.65 },
+          ],
+          false,
+          d.seed + 6,
+          boilFrame,
+          strokeOpts
+        );
+        sketchCircle(ctx, sx + r * 0.95, sy - r * 0.85, r * 0.24, d.seed + 11, boilFrame, {
+          ...strokeOpts,
+          segments: 10,
+        });
+        break;
+      }
+      case 'flask': {
+        // Chemistry Erlenmeyer flask
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - r * 0.22, y: sy - r * 0.85 },
+            { x: sx - r * 0.22, y: sy - r * 0.35 },
+            { x: sx - r * 0.72, y: sy + r * 0.65 },
+            { x: sx + r * 0.72, y: sy + r * 0.65 },
+            { x: sx + r * 0.22, y: sy - r * 0.35 },
+            { x: sx + r * 0.22, y: sy - r * 0.85 },
+          ],
+          true,
+          d.seed,
+          boilFrame,
+          strokeOpts
+        );
+        sketchCircle(ctx, sx - r * 0.15, sy + r * 0.25, r * 0.12, d.seed + 5, boilFrame, strokeOpts);
+        sketchCircle(ctx, sx + r * 0.18, sy + r * 0.35, r * 0.09, d.seed + 9, boilFrame, strokeOpts);
+        break;
+      }
+      case 'atom': {
+        // Science atom orbits
+        sketchCircle(ctx, sx, sy, r * 0.16, d.seed, boilFrame, strokeOpts);
+        sketchCircle(ctx, sx, sy, r * 0.75, d.seed + 4, boilFrame, { ...strokeOpts, segments: 16 });
+        sketchLine(ctx, sx - r * 0.9, sy - r * 0.5, sx + r * 0.9, sy + r * 0.5, d.seed + 8, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.9, sy + r * 0.5, sx + r * 0.9, sy - r * 0.5, d.seed + 12, boilFrame, strokeOpts);
+        break;
+      }
+      case 'scissors': {
+        // Craft scissors
+        sketchCircle(ctx, sx - r * 0.55, sy - r * 0.35, r * 0.24, d.seed, boilFrame, strokeOpts);
+        sketchCircle(ctx, sx - r * 0.55, sy + r * 0.35, r * 0.24, d.seed + 4, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.32, sy - r * 0.22, sx + r * 0.85, sy + r * 0.25, d.seed + 8, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.32, sy + r * 0.22, sx + r * 0.85, sy - r * 0.25, d.seed + 12, boilFrame, strokeOpts);
+        break;
+      }
+      case 'abc': {
+        sketchText(ctx, 'A B C', sx, sy, d.seed, boilFrame, {
+          color: 'rgba(51, 65, 85, 0.34)',
+          fontSize: 18,
+          weight: '800',
+          fontFamily: '"Segoe UI", system-ui, sans-serif',
+          wobble: 1.5,
+        });
+        break;
+      }
+      case 'quote': {
+        sketchText(ctx, '“...”', sx, sy, d.seed, boilFrame, {
+          color: 'rgba(51, 65, 85, 0.34)',
+          fontSize: 22,
+          weight: '800',
+          fontFamily: 'Georgia, serif',
+          wobble: 1.5,
+        });
+        break;
+      }
+      case 'pencil': {
+        // Hand-drawn wooden pencil
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - r * 0.9, y: sy - r * 0.16 },
+            { x: sx + r * 0.55, y: sy - r * 0.16 },
+            { x: sx + r * 0.95, y: sy },
+            { x: sx + r * 0.55, y: sy + r * 0.16 },
+            { x: sx - r * 0.9, y: sy + r * 0.16 },
+          ],
+          true,
+          d.seed,
+          boilFrame,
+          strokeOpts
+        );
+        sketchLine(ctx, sx - r * 0.65, sy - r * 0.16, sx - r * 0.65, sy + r * 0.16, d.seed + 6, boilFrame, strokeOpts);
+        break;
+      }
+      case 'book': {
+        // Little open book
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - r * 0.85, y: sy - r * 0.5 },
+            { x: sx, y: sy - r * 0.35 },
+            { x: sx + r * 0.85, y: sy - r * 0.5 },
+            { x: sx + r * 0.85, y: sy + r * 0.5 },
+            { x: sx, y: sy + r * 0.62 },
+            { x: sx - r * 0.85, y: sy + r * 0.5 },
+          ],
+          true,
+          d.seed,
+          boilFrame,
+          strokeOpts
+        );
+        sketchLine(ctx, sx, sy - r * 0.35, sx, sy + r * 0.62, d.seed + 7, boilFrame, strokeOpts);
+        break;
+      }
+      case 'math_eq': {
+        sketchText(ctx, 'x² + y² = r²', sx, sy, d.seed, boilFrame, {
+          color: 'rgba(14, 116, 144, 0.36)',
+          fontSize: 15,
+          weight: '700',
+          fontFamily: '"Segoe UI", system-ui, sans-serif',
+          wobble: 1.4,
+        });
+        break;
+      }
+      case 'protractor': {
+        sketchArc(ctx, sx, sy + r * 0.35, r * 0.85, Math.PI, 0, d.seed, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.85, sy + r * 0.35, sx + r * 0.85, sy + r * 0.35, d.seed + 5, boilFrame, strokeOpts);
+        sketchLine(ctx, sx, sy + r * 0.35, sx, sy - r * 0.5, d.seed + 9, boilFrame, strokeOpts);
+        break;
+      }
+      case 'cube': {
+        const s = r * 0.48;
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - s, y: sy - s * 0.5 },
+            { x: sx + s * 0.4, y: sy - s * 0.5 },
+            { x: sx + s * 0.4, y: sy + s * 0.9 },
+            { x: sx - s, y: sy + s * 0.9 },
+          ],
+          true,
+          d.seed,
+          boilFrame,
+          strokeOpts
+        );
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - s, y: sy - s * 0.5 },
+            { x: sx - s * 0.3, y: sy - s },
+            { x: sx + s, y: sy - s },
+            { x: sx + s * 0.4, y: sy - s * 0.5 },
+          ],
+          false,
+          d.seed + 6,
+          boilFrame,
+          strokeOpts
+        );
+        sketchLine(ctx, sx + s, sy - s, sx + s, sy + s * 0.4, d.seed + 11, boilFrame, strokeOpts);
+        sketchLine(ctx, sx + s * 0.4, sy + s * 0.9, sx + s, sy + s * 0.4, d.seed + 14, boilFrame, strokeOpts);
+        break;
+      }
+      case 'dna': {
+        const p1 = [];
+        const p2 = [];
+        for (let i = 0; i <= 10; i++) {
+          const t = i / 10;
+          const x = sx - r * 0.9 + t * r * 1.8;
+          const wave = Math.sin(t * Math.PI * 2.5) * r * 0.32;
+          p1.push({ x, y: sy + wave });
+          p2.push({ x, y: sy - wave });
+          if (i % 2 === 1) {
+            sketchLine(ctx, x, sy + wave, x, sy - wave, d.seed + i * 3, boilFrame, strokeOpts);
+          }
+        }
+        sketchPoly(ctx, p1, false, d.seed + 40, boilFrame, strokeOpts);
+        sketchPoly(ctx, p2, false, d.seed + 60, boilFrame, strokeOpts);
+        break;
+      }
+      case 'leaf': {
+        sketchArc(ctx, sx, sy + r * 0.45, r * 0.75, -Math.PI * 0.85, -Math.PI * 0.15, d.seed, boilFrame, strokeOpts);
+        sketchArc(ctx, sx, sy - r * 0.45, r * 0.75, Math.PI * 0.15, Math.PI * 0.85, d.seed + 5, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.85, sy, sx + r * 0.75, sy, d.seed + 9, boilFrame, strokeOpts);
+        break;
+      }
+      case 'magnet': {
+        sketchArc(ctx, sx, sy - r * 0.15, r * 0.5, Math.PI, 0, d.seed, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.5, sy - r * 0.15, sx - r * 0.5, sy + r * 0.55, d.seed + 4, boilFrame, strokeOpts);
+        sketchLine(ctx, sx + r * 0.5, sy - r * 0.15, sx + r * 0.5, sy + r * 0.55, d.seed + 8, boilFrame, strokeOpts);
+        sketchLine(ctx, sx - r * 0.5, sy + r * 0.3, sx - r * 0.25, sy + r * 0.3, d.seed + 12, boilFrame, strokeOpts);
+        sketchLine(ctx, sx + r * 0.25, sy + r * 0.3, sx + r * 0.5, sy + r * 0.3, d.seed + 15, boilFrame, strokeOpts);
+        break;
+      }
+      case 'hammer': {
+        sketchLine(ctx, sx - r * 0.65, sy + r * 0.7, sx + r * 0.25, sy - r * 0.2, d.seed, boilFrame, {
+          ...strokeOpts,
+          lineWidth: 2.6,
+        });
+        sketchPoly(
+          ctx,
+          [
+            { x: sx - r * 0.1, y: sy - r * 0.55 },
+            { x: sx + r * 0.65, y: sy + r * 0.2 },
+            { x: sx + r * 0.42, y: sy + r * 0.42 },
+            { x: sx - r * 0.32, y: sy - r * 0.32 },
+          ],
+          true,
+          d.seed + 6,
+          boilFrame,
+          strokeOpts
+        );
+        break;
+      }
+      case 'brush': {
+        sketchLine(ctx, sx - r * 0.75, sy + r * 0.65, sx + r * 0.35, sy - r * 0.35, d.seed, boilFrame, strokeOpts);
+        sketchPoly(
+          ctx,
+          [
+            { x: sx + r * 0.35, y: sy - r * 0.35 },
+            { x: sx + r * 0.8, y: sy - r * 0.55 },
+            { x: sx + r * 0.65, y: sy - r * 0.1 },
+          ],
+          true,
+          d.seed + 5,
+          boilFrame,
+          strokeOpts
+        );
+        break;
+      }
+      case 'saw': {
+        sketchLine(ctx, sx - r * 0.85, sy - r * 0.25, sx + r * 0.75, sy - r * 0.25, d.seed, boilFrame, strokeOpts);
+        const teeth = [];
+        for (let i = 0; i <= 6; i++) {
+          teeth.push({ x: sx - r * 0.75 + (i / 6) * r * 1.45, y: sy + (i % 2 === 0 ? 0.05 : 0.28) * r });
+        }
+        sketchPoly(ctx, teeth, false, d.seed + 6, boilFrame, strokeOpts);
+        break;
+      }
+    }
+  }
+
+  _drawSign(ctx, sign, toSX, toSY, boilFrame) {
+    const sx = toSX(sign.x);
+    const sy = toSY(sign.y);
+    const tilt = sign.tilt || 0;
+
+    sketchText(ctx, sign.text, sx, sy, sign.seed, boilFrame, {
+      color: 'rgba(24, 34, 48, 0.86)',
+      fontSize: 19,
+      weight: '700',
+      tilt,
+      underline: true,
+      wobble: 1.0,
+    });
+
+    if (sign.subtext) {
+      sketchText(ctx, sign.subtext, sx, sy + 21, sign.seed + 7.3, boilFrame, {
+        color: 'rgba(51, 65, 85, 0.72)',
+        fontSize: 12,
+        weight: '600',
+        tilt,
+        wobble: 0.8,
+      });
+    }
+
+    if (sign.arrowTo) {
+      const tx = toSX(sign.arrowTo.x);
+      const ty = toSY(sign.arrowTo.y);
+      const startY = sign.subtext ? sy + 31 : sy + 16;
+      sketchArrow(ctx, sx, startY, tx, ty, sign.seed + 19.7, boilFrame, {
+        color: 'rgba(30, 41, 59, 0.75)',
+        lineWidth: 2.0,
+        headSize: 10,
+        curve: sign.curve || 0,
+        wobble: 1.4,
+      });
+    }
+  }
+
+  _drawPlatformLabel(ctx, p, sx, sy, ph, boilFrame) {
+    const cfg = typeof p.label === 'string' ? { text: p.label } : p.label;
+    if (!cfg || !cfg.text) return;
+
+    const lx = sx + (cfg.offsetX || 0) * PPU;
+    const ly = sy - ph / 2 - 22 + (cfg.offsetY || 0) * PPU;
+
+    sketchText(ctx, cfg.text, lx, ly, p.seed + 301, boilFrame, {
+      color: 'rgba(24, 34, 48, 0.84)',
+      fontSize: 15,
+      weight: '700',
+      tilt: -(p.tilt || 0) * 0.5,
+      underline: true,
+    });
+
+    if (cfg.arrow !== false) {
+      sketchArrow(ctx, lx, ly + 11, sx, sy - ph / 2 - 4, p.seed + 317, boilFrame, {
+        color: 'rgba(51, 65, 85, 0.68)',
+        lineWidth: 1.6,
+        headSize: 7,
+        wobble: 1.0,
+      });
+    }
+  }
+
+  _drawMovingPlatformTrack(ctx, p, toSX, toSY, boilFrame) {
+    const isX = p.move.axis === 'x';
+    const x1 = toSX(isX ? p.baseX - p.move.range : p.baseX);
+    const y1 = toSY(isX ? p.baseY : p.baseY - p.move.range);
+    const x2 = toSX(isX ? p.baseX + p.move.range : p.baseX);
+    const y2 = toSY(isX ? p.baseY : p.baseY + p.move.range);
+
+    const dist = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const dashCount = Math.max(4, Math.floor(dist / 22));
+    for (let i = 0; i < dashCount; i++) {
+      const t0 = i / dashCount;
+      const t1 = (i + 0.55) / dashCount;
+      sketchLine(
+        ctx,
+        x1 + (x2 - x1) * t0,
+        y1 + (y2 - y1) * t0,
+        x1 + (x2 - x1) * t1,
+        y1 + (y2 - y1) * t1,
+        p.seed + 50 + i * 3.7,
+        boilFrame,
+        { color: 'rgba(71, 85, 105, 0.34)', lineWidth: 1.6, wobble: 0.9, overshoot: 1, passes: 1 }
+      );
+    }
+
+    sketchCircle(ctx, x1, y1, 3.5, p.seed + 81, boilFrame, {
+      segments: 8,
+      color: 'rgba(71, 85, 105, 0.45)',
+      lineWidth: 1.5,
+      passes: 1,
+    });
+    sketchCircle(ctx, x2, y2, 3.5, p.seed + 89, boilFrame, {
+      segments: 8,
+      color: 'rgba(71, 85, 105, 0.45)',
+      lineWidth: 1.5,
+      passes: 1,
+    });
+  }
+
+  _drawMovingPlatformEffects(ctx, p, pw, ph, time, boilFrame) {
+    // Crisp top-edge chalk highlight
+    sketchLine(ctx, -pw / 2 + 6, -ph / 2 + 4, pw / 2 - 6, -ph / 2 + 4, p.seed + 101, boilFrame, {
+      color: 'rgba(255, 255, 255, 0.65)',
+      lineWidth: 1.8,
+      wobble: 0.7,
+      overshoot: 1,
+      passes: 1,
+    });
+
+    // Trailing motion lines opposite current velocity
+    const isX = p.move.axis === 'x';
+    const vel = Math.cos(time * p.move.speed) * p.move.speed;
+    const dir = vel >= 0 ? 1 : -1;
+    const strength = Math.min(1, Math.abs(vel) / Math.max(0.5, p.move.speed));
+    const len = 10 + strength * 14;
+
+    for (let i = -1; i <= 1; i++) {
+      if (isX) {
+        const edgeX = -dir * (pw / 2 + 6);
+        const yOff = i * (ph * 0.28);
+        sketchLine(
+          ctx,
+          edgeX,
+          yOff,
+          edgeX - dir * len,
+          yOff,
+          p.seed + 120 + i * 5.3,
+          boilFrame,
+          { color: 'rgba(37, 99, 235, 0.48)', lineWidth: 1.7, wobble: 1.0, overshoot: 1, passes: 1 }
+        );
+      } else {
+        // +Y in world is -Y in screen space
+        const screenDir = -dir;
+        const edgeY = -screenDir * (ph / 2 + 6);
+        const xOff = i * (pw * 0.28);
+        sketchLine(
+          ctx,
+          xOff,
+          edgeY,
+          xOff,
+          edgeY - screenDir * len,
+          p.seed + 120 + i * 5.3,
+          boilFrame,
+          { color: 'rgba(37, 99, 235, 0.48)', lineWidth: 1.7, wobble: 1.0, overshoot: 1, passes: 1 }
+        );
+      }
+    }
+  }
+
+  _drawCheckpoint(ctx, cp, toSX, toSY, time, boilFrame) {
+    const sx = toSX(cp.x);
+    const sy = toSY(cp.y);
+
+    // Pole, finial pinhead & base pin mark
+    sketchLine(ctx, sx, sy + 28, sx, sy - 36, cp.seed, boilFrame, { lineWidth: 2.6 });
+    sketchCircle(ctx, sx, sy - 39, 3.8, cp.seed + 2, boilFrame, {
+      segments: 10,
+      color: cp.activated ? '#0284c7' : INK,
+      lineWidth: 2.0,
+    });
+    sketchLine(ctx, sx - 7, sy + 28, sx + 7, sy + 28, cp.seed + 3, boilFrame, {
+      lineWidth: 1.8,
+      overshoot: 1.5,
+      passes: 1,
+    });
+
+    // Flag body
+    sketchRect(ctx, sx + 17, sy - 24, 34, 20, cp.seed + 5, boilFrame, {
+      fill: cp.activated ? '#38bdf8' : '#cbd5e1',
+      shadow: true,
+      lineWidth: 2,
+    });
+
+    // Crisp inner highlight along top of flag
+    sketchLine(ctx, sx + 4, sy - 30, sx + 30, sy - 30, cp.seed + 11, boilFrame, {
+      color: cp.activated ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.5)',
+      lineWidth: 1.7,
+      wobble: 0.7,
+      overshoot: 1,
+      passes: 1,
+    });
+
+    if (cp.activated) {
+      // Fluttering motion lines off right edge of flag
+      const wave = Math.sin(time * 5 + cp.x) * 2.5;
+      sketchLine(ctx, sx + 38, sy - 29 + wave * 0.4, sx + 49, sy - 31 - wave * 0.4, cp.seed + 17, boilFrame, {
+        color: 'rgba(14, 165, 233, 0.7)',
+        lineWidth: 1.8,
+        passes: 1,
+      });
+      sketchLine(ctx, sx + 38, sy - 19 - wave * 0.4, sx + 47, sy - 18 + wave * 0.4, cp.seed + 21, boilFrame, {
+        color: 'rgba(14, 165, 233, 0.7)',
+        lineWidth: 1.8,
+        passes: 1,
+      });
+
+      // Radiating celebration ticks around finial
+      for (let i = 0; i < 4; i++) {
+        const a = -Math.PI * 0.85 + (i / 3) * Math.PI * 0.7;
+        sketchLine(
+          ctx,
+          sx + Math.cos(a) * 9,
+          sy - 39 + Math.sin(a) * 9,
+          sx + Math.cos(a) * 16,
+          sy - 39 + Math.sin(a) * 16,
+          cp.seed + 30 + i * 4.1,
+          boilFrame,
+          { color: 'rgba(14, 165, 233, 0.78)', lineWidth: 1.7, wobble: 0.9, overshoot: 1, passes: 1 }
+        );
+      }
+    }
+  }
+}
+
+// --- js/player.js ---
+class PaperclipPlayer {
+  constructor() {
+    this.particles = [];
+    this.speedLines = [];
+
+    // Collision half-extents in world units
+    this.halfW = 0.28;
+    this.halfH = 0.48;
+
+    this.x = 0;
+    this.y = 0;
+    this.vx = 0;
+    this.vy = 0;
+    this.facing = 1;
+
+    this.onGround = false;
+    this.groundPlatform = null;
+    this.wallDir = 0;
+    this.lastWallDir = 0;
+    this.wallCoyoteTimer = 0;
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
+
+    this.canDash = true;
+    this.dashTimer = 0;
+    this.dashCooldown = 0;
+    this.dashDirX = 1;
+    this.dashDirY = 0;
+
+    this.scaleX = 1;
+    this.scaleY = 1;
+    this.spinAngle = 0;
+    this.blinkTimer = 2.5;
+    this.speedLineTimer = 0;
+    this.isWallSliding = false;
+    this.wallSlideTimer = 0;
+
+    this.dead = false;
+    this.respawnTimer = 0;
+    this.spawnPos = { x: 0, y: 0 };
+  }
+
+  spawn(pos) {
+    this.spawnPos = { ...pos };
+    this.x = pos.x;
+    this.y = pos.y;
+    this.vx = 0;
+    this.vy = 0;
+    this.onGround = false;
+    this.groundPlatform = null;
+    this.wallDir = 0;
+    this.lastWallDir = 0;
+    this.wallCoyoteTimer = 0;
+    this.canDash = true;
+    this.dashTimer = 0;
+    this.dead = false;
+    this.spinAngle = 0;
+    this.scaleX = 1;
+    this.scaleY = 1;
+    this.speedLines = [];
+    this.speedLineTimer = 0;
+    this.isWallSliding = false;
+    this.wallSlideTimer = 0;
+  }
+
+  _spawnParticles(x, y, count, color = '#67e8f9', speed = 4.5) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = (0.4 + Math.random() * 0.8) * speed;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd + 1.5,
+        rot: Math.random() * Math.PI,
+        rotSpeed: (Math.random() - 0.5) * 14,
+        life: 0.35 + Math.random() * 0.25,
+        maxLife: 0.55,
+        color,
+        size: 5 + Math.random() * 4,
+      });
+    }
+  }
+
+  _spawnWallSparks(x, y, wallDir) {
+    const colors = ['#fbbf24', '#fde68a', '#cbd5e1'];
+    for (let i = 0; i < 2; i++) {
+      const vx = -wallDir * (1.8 + Math.random() * 2.8);
+      const vy = 1.0 + Math.random() * 2.8;
+      this.particles.push({
+        x,
+        y: y + (Math.random() - 0.5) * 0.4,
+        vx,
+        vy,
+        rot: Math.random() * Math.PI,
+        rotSpeed: (Math.random() - 0.5) * 18,
+        life: 0.18 + Math.random() * 0.14,
+        maxLife: 0.32,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 3 + Math.random() * 2.5,
+      });
+    }
+  }
+
+  _spawnSpeedLines(isDashing, speed) {
+    if (speed < 0.1) return;
+    const ux = this.vx / speed;
+    const uy = this.vy / speed;
+    const px = -uy;
+    const py = ux;
+    const count = isDashing ? 2 : 1;
+
+    for (let i = 0; i < count; i++) {
+      const side = (Math.random() - 0.5) * 0.72;
+      const back = 0.25 + Math.random() * 0.25;
+      const len = isDashing ? 0.65 + Math.random() * 0.55 : 0.38 + Math.random() * 0.32;
+      const x1 = this.x + px * side - ux * back;
+      const y1 = this.y + py * side - uy * back;
+      const x2 = x1 - ux * len;
+      const y2 = y1 - uy * len;
+      const maxLife = isDashing ? 0.18 : 0.13;
+
+      this.speedLines.push({
+        x1,
+        y1,
+        x2,
+        y2,
+        life: maxLife,
+        maxLife,
+        seed: Math.random() * 1000,
+        color: isDashing ? '#2563eb' : INK,
+        width: isDashing ? 2.4 : 1.7,
+      });
+    }
+  }
+
+  updateParticles(dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      p.vy -= 14 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += p.rotSpeed * dt;
+    }
+
+    for (let i = this.speedLines.length - 1; i >= 0; i--) {
+      const sl = this.speedLines[i];
+      sl.life -= dt;
+      if (sl.life <= 0) {
+        this.speedLines.splice(i, 1);
+      }
+    }
+  }
+
+  update(dt, input, world) {
+    this.updateParticles(dt);
+
+    if (this.dead) {
+      this.respawnTimer -= dt;
+      if (this.respawnTimer <= 0) {
+        this.spawn(this.spawnPos);
+      }
+      return { reachedGoal: false, starsCollectedNow: 0, died: false };
+    }
+
+    const moveSpeed = 8.4;
+    const groundAccel = 65;
+    const airAccel = 44;
+    const gravity = -34;
+    const maxFall = -20;
+    const wallSlideSpeed = -4.2;
+    const jumpVel = 13.8;
+
+    const dirX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    if (dirX !== 0) this.facing = dirX;
+
+    if (this.onGround) {
+      this.coyoteTimer = 0.11;
+      this.canDash = true;
+      this.wallCoyoteTimer = 0;
+    } else {
+      this.coyoteTimer = Math.max(0, this.coyoteTimer - dt);
+      if (this.wallDir !== 0) {
+        this.lastWallDir = this.wallDir;
+        this.wallCoyoteTimer = 0.1;
+      } else {
+        this.wallCoyoteTimer = Math.max(0, this.wallCoyoteTimer - dt);
+      }
+    }
+
+    if (input.jumpPressed) {
+      this.jumpBufferTimer = 0.12;
+    } else {
+      this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
+    }
+
+    this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+
+    // Spring-dash
+    if (input.dashPressed && this.canDash && this.dashCooldown <= 0) {
+      this.canDash = false;
+      this.dashTimer = 0.15;
+      this.dashCooldown = 0.24;
+
+      const aimX = dirX !== 0 ? dirX : this.facing;
+      const aimY = input.up ? 0.62 : 0.22;
+      const len = Math.hypot(aimX, aimY);
+      this.dashDirX = aimX / len;
+      this.dashDirY = aimY / len;
+
+      this.vx = this.dashDirX * 17.5;
+      this.vy = this.dashDirY * 15.5;
+      this.spinAngle = Math.PI * 2 * -this.facing;
+      this.scaleX = 1.35;
+      this.scaleY = 0.72;
+      sound.playDash();
+      this._spawnParticles(this.x, this.y, 10, '#67e8f9', 5.5);
+    }
+
+    if (this.dashTimer > 0) {
+      this.dashTimer -= dt;
+      this.vy += gravity * 0.25 * dt;
+    } else {
+      const targetVx = dirX * moveSpeed;
+      const isSlippery = this.onGround && this.groundPlatform && this.groundPlatform.slippery;
+      const accel = this.onGround ? (isSlippery ? 13 : groundAccel) : airAccel;
+      if (this.vx < targetVx) {
+        this.vx = Math.min(targetVx, this.vx + accel * dt);
+      } else if (this.vx > targetVx) {
+        this.vx = Math.max(targetVx, this.vx - accel * dt);
+      }
+
+      this.vy += gravity * dt;
+      this.isWallSliding = false;
+      if (!this.onGround && this.wallDir !== 0 && this.vy < wallSlideSpeed && dirX === this.wallDir) {
+        this.vy = wallSlideSpeed;
+        this.canDash = true;
+        this.isWallSliding = true;
+      }
+      if (this.vy < maxFall) this.vy = maxFall;
+    }
+
+    if (this.isWallSliding) {
+      this.wallSlideTimer -= dt;
+      if (this.wallSlideTimer <= 0) {
+        this.wallSlideTimer = 0.085;
+        this._spawnWallSparks(this.x + this.wallDir * this.halfW, this.y - 0.1, this.wallDir);
+        sound.playWallScratch();
+      }
+    } else {
+      this.wallSlideTimer = 0;
+    }
+
+    if (this.jumpBufferTimer > 0) {
+      if (this.coyoteTimer > 0) {
+        this.vy = jumpVel;
+        this.onGround = false;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.scaleX = 0.74;
+        this.scaleY = 1.35;
+        sound.playJump();
+        this._spawnParticles(this.x, this.y - this.halfH, 6, '#cbd5e1', 3.2);
+      } else if (this.wallDir !== 0 || this.wallCoyoteTimer > 0) {
+        const wDir = this.wallDir !== 0 ? this.wallDir : this.lastWallDir;
+        this.vx = -wDir * 10.5;
+        this.vy = jumpVel * 0.96;
+        this.facing = -wDir;
+        this.wallDir = 0;
+        this.wallCoyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.scaleX = 0.75;
+        this.scaleY = 1.32;
+        sound.playJump();
+        this._spawnParticles(this.x, this.y, 7, '#cbd5e1', 3.8);
+      }
+    }
+
+    if (!input.jumpHeld && this.vy > 5.5 && this.dashTimer <= 0) {
+      this.vy *= Math.pow(0.45, dt * 12);
+    }
+
+    // Carry player with moving platform before physics step
+    if (this.onGround && this.groundPlatform) {
+      this.x += this.groundPlatform.x - this.groundPlatform.prevX;
+      this.y += this.groundPlatform.y - this.groundPlatform.prevY;
+    }
+
+    const prevX = this.x;
+    const prevY = this.y;
+
+    // Move & Collide X
+    this.x += this.vx * dt;
+    this.wallDir = 0;
+
+    if (this.x - this.halfW < -2) {
+      this.x = -2 + this.halfW;
+      this.vx = 0;
+    } else if (this.x + this.halfW > 410) {
+      this.x = 410 - this.halfW;
+      this.vx = 0;
+    }
+
+    for (const p of world.platforms) {
+      if (p.crumbleState === 'fallen') continue;
+      if (this._overlaps(this.x, this.y, this.halfW, this.halfH, p.x, p.y, p.w / 2, p.h / 2)) {
+        const cameFromLeft = prevX + this.halfW <= p.x - p.w / 2 + 0.08;
+        const cameFromRight = prevX - this.halfW >= p.x + p.w / 2 - 0.08;
+        const overlapY = this.halfH + p.h / 2 - Math.abs(prevY - p.y);
+
+        // Only resolve horizontally if we actually approached from the side (never snap when landing on top!)
+        if (overlapY > 0.05 && (cameFromLeft || cameFromRight)) {
+          if (cameFromLeft && this.vx > 0) {
+            this.x = p.x - p.w / 2 - this.halfW;
+            this.vx = 0;
+            if (overlapY >= 0.2) this.wallDir = 1;
+          } else if (cameFromRight && this.vx < 0) {
+            this.x = p.x + p.w / 2 + this.halfW;
+            this.vx = 0;
+            if (overlapY >= 0.2) this.wallDir = -1;
+          }
+        }
+      }
+    }
+
+    // Move & Collide Y
+    const wasOnGround = this.onGround;
+    this.y += this.vy * dt;
+    this.onGround = false;
+    this.groundPlatform = null;
+
+    for (const p of world.platforms) {
+      if (p.crumbleState === 'fallen') continue;
+      if (this._overlaps(this.x, this.y, this.halfW, this.halfH, p.x, p.y, p.w / 2, p.h / 2)) {
+        if (this.vy <= 0) {
+          this.y = p.y + p.h / 2 + this.halfH;
+          if (p.bounce > 0) {
+            this.vy = p.bounce;
+            this.canDash = true;
+            this.onGround = false;
+            p.bounceAnim = 1.0;
+            this.scaleX = 0.68;
+            this.scaleY = 1.45;
+            sound.playBounce();
+            this._spawnParticles(this.x, this.y - this.halfH, 10, '#93c5fd', 5.0);
+          } else {
+            if (!wasOnGround && this.vy < -4) {
+              this.scaleX = 1.3;
+              this.scaleY = 0.72;
+              sound.playLand();
+              this._spawnParticles(this.x, this.y - this.halfH, 4, '#cbd5e1', 2.4);
+            }
+            this.vy = 0;
+            this.onGround = true;
+            this.groundPlatform = p;
+            if (p.crumble && p.crumbleState === 'solid') {
+              p.crumbleState = 'shaking';
+              p.crumbleTimer = 0.55;
+            }
+          }
+        } else if (prevY + this.halfH <= p.y - p.h / 2 + 0.14) {
+          this.y = p.y - p.h / 2 - this.halfH;
+          this.vy = 0;
+        }
+      }
+    }
+
+    for (const h of world.hazards) {
+      if (this._overlaps(this.x, this.y, this.halfW * 0.85, this.halfH * 0.85, h.x, h.y, h.w / 2, h.h / 2)) {
+        this._die();
+        return { reachedGoal: false, starsCollectedNow: 0, died: true };
+      }
+    }
+
+    if (this.y < -7.2) {
+      this._die();
+      return { reachedGoal: false, starsCollectedNow: 0, died: true };
+    }
+
+    let starsCollectedNow = 0;
+    for (const s of world.stars) {
+      if (!s.collected && Math.hypot(this.x - s.x, this.y - s.y) < 0.78) {
+        s.collected = true;
+        starsCollectedNow++;
+        sound.playStar();
+        this._spawnParticles(s.x, s.y, 12, '#67e8f9', 5.2);
+      }
+    }
+
+    for (const cp of world.checkpoints) {
+      if (!cp.activated && Math.hypot(this.x - cp.x, this.y - cp.y) < 1.5) {
+        cp.activated = true;
+        this.spawnPos = { x: cp.x, y: cp.y + 0.4 };
+        sound.playCheckpoint();
+        this._spawnParticles(cp.x, cp.y + 0.4, 10, '#38bdf8', 4.5);
+      }
+    }
+
+    const speed = Math.hypot(this.vx, this.vy);
+    const isDashing = this.dashTimer > 0;
+    if (isDashing || speed > 9.2) {
+      this.speedLineTimer -= dt;
+      if (this.speedLineTimer <= 0) {
+        this.speedLineTimer = isDashing ? 0.022 : 0.048;
+        this._spawnSpeedLines(isDashing, speed);
+      }
+    } else {
+      this.speedLineTimer = 0;
+    }
+
+    const reachedGoal =
+      world.goal && Math.hypot(this.x - world.goal.x, this.y - world.goal.y) < world.goal.radius;
+
+    this.scaleX += (1 - this.scaleX) * Math.min(1, dt * 14);
+    this.scaleY += (1 - this.scaleY) * Math.min(1, dt * 14);
+    this.spinAngle += (0 - this.spinAngle) * Math.min(1, dt * 10);
+
+    this.blinkTimer -= dt;
+    if (this.blinkTimer <= 0) {
+      this.blinkTimer = 2.2 + Math.random() * 2.5;
+    }
+
+    return { reachedGoal, starsCollectedNow, died: false };
+  }
+
+  _die() {
+    this.dead = true;
+    this.respawnTimer = 0.45;
+    sound.playHazard();
+    this._spawnParticles(this.x, this.y, 14, '#182230', 6.0);
+  }
+
+  _overlaps(ax, ay, ahw, ahh, bx, by, bhw, bhh) {
+    return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
+  }
+
+  draw(ctx, camX, camY, viewW, viewH, time) {
+    const toSX = (wx) => viewW / 2 + (wx - camX) * PPU;
+    const toSY = (wy) => viewH / 2 - (wy - camY) * PPU;
+    const boilFrame = Math.floor(time * BOIL_FPS) % 3;
+
+    // 1. Draw boiling speed/motion lines trailing behind the paperclip
+    for (const sl of this.speedLines) {
+      const alpha = Math.max(0, sl.life / sl.maxLife) * 0.85;
+      sketchLine(
+        ctx,
+        toSX(sl.x1),
+        toSY(sl.y1),
+        toSX(sl.x2),
+        toSY(sl.y2),
+        sl.seed,
+        boilFrame,
+        {
+          color: sl.color,
+          lineWidth: sl.width,
+          wobble: 1.6,
+          overshoot: 2.0,
+          passes: 1,
+          alpha,
+        }
+      );
+    }
+
+    // 2. Draw sketchy 2D particles
+    for (const p of this.particles) {
+      const sx = toSX(p.x);
+      const sy = toSY(p.y);
+      const alpha = Math.max(0, p.life / p.maxLife);
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.4;
+      const s = p.size * (0.4 + 0.6 * alpha);
+      ctx.fillRect(-s / 2, -s / 2, s, s);
+      ctx.strokeRect(-s / 2, -s / 2, s, s);
+      ctx.restore();
+    }
+
+    if (this.dead) return;
+
+    // 2. Draw 2D Boiling-Line Paperclip Character
+    const sx = toSX(this.x);
+    const sy = toSY(this.y);
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    const lean = this.vx * 0.025;
+    ctx.rotate(lean - this.spinAngle);
+    ctx.scale(this.scaleX, this.scaleY);
+
+    // Classic paperclip loop in pixel space (approx 30px wide x 50px tall)
+    const rawPts = [
+      { x: -4, y: 8 },
+      { x: -4, y: -15 },
+      { x: 0, y: -21 },
+      { x: 5, y: -21 },
+      { x: 9, y: -15 },
+      { x: 9, y: 18 },
+      { x: 4, y: 24 },
+      { x: -5, y: 24 },
+      { x: -10, y: 18 },
+      { x: -10, y: -17 },
+      { x: -5, y: -25 },
+      { x: 6, y: -25 },
+      { x: 12, y: -17 },
+      { x: 12, y: 9 },
+    ];
+
+    // Subtle paper drop shadow behind the paperclip
+    ctx.save();
+    ctx.translate(4, 5);
+    ctx.strokeStyle = 'rgba(24, 34, 48, 0.16)';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    rawPts.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
+    ctx.stroke();
+    ctx.restore();
+
+    // Boiling wire color (bright cobalt when dash is ready, cool slate when spent)
+    const wireColor = this.canDash ? '#2563eb' : '#64748b';
+
+    // Outer dark graphite sketch stroke + inner cobalt wire stroke (both boiling!)
+    sketchPoly(ctx, rawPts, false, 777, boilFrame, {
+      color: INK,
+      lineWidth: 4.8,
+      wobble: 1.5,
+      overshoot: 1.2,
+      passes: 1,
+      alpha: 0.95,
+    });
+    sketchPoly(ctx, rawPts, false, 779, boilFrame, {
+      color: wireColor,
+      lineWidth: 2.5,
+      wobble: 1.3,
+      overshoot: 0.8,
+      passes: 2,
+      alpha: 0.95,
+    });
+
+    // Expressive boiling ink-dot eyes
+    const blinking = this.blinkTimer < 0.1;
+    const eyeShift = this.facing * 2.5;
+    const eyeY = -8;
+    const eyeH = blinking ? 1.0 : 3.2;
+
+    const drawEye = (ex, seed) => {
+      const jx = hash2(seed, boilFrame) * 0.9;
+      const jy = hash2(seed + 4, boilFrame) * 0.9;
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.ellipse(ex + eyeShift + jx, eyeY + jy, 2.7, eyeH, 0, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    drawEye(-3.5, 810);
+    drawEye(4.5, 820);
+
+    ctx.restore();
+  }
+}
+
+// --- js/main.js ---
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+const hud = document.getElementById('hud');
+const levelNameEl = document.getElementById('level-name');
+const starCountEl = document.getElementById('star-count');
+const progressPctEl = document.getElementById('progress-pct');
+const runTimerEl = document.getElementById('run-timer');
+const startOverlay = document.getElementById('start-overlay');
+const pauseOverlay = document.getElementById('pause-overlay');
+const winOverlay = document.getElementById('win-overlay');
+const winStatsEl = document.getElementById('win-stats');
+const winBestEl = document.getElementById('win-best');
+const btnStart = document.getElementById('btn-start');
+const btnPlayAgain = document.getElementById('btn-play-again');
+const btnPause = document.getElementById('btn-pause');
+const btnResume = document.getElementById('btn-resume');
+const btnCheckpoint = document.getElementById('btn-checkpoint');
+const btnFullRestart = document.getElementById('btn-full-restart');
+const btnRestart = document.getElementById('btn-restart');
+const btnMute = document.getElementById('btn-mute');
+
+const BEST_TIME_KEY = 'gemmets_resa_best_time';
+const BEST_STARS_KEY = 'gemmets_resa_best_stars';
+
+let viewW = window.innerWidth;
+let viewH = window.innerHeight;
+
+function resizeCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  viewW = window.innerWidth;
+  viewH = window.innerHeight;
+  canvas.width = Math.floor(viewW * dpr);
+  canvas.height = Math.floor(viewH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// World & Player
+const world = new BookWorld();
+const player = new PaperclipPlayer();
+
+// Camera state in world coordinates
+let camX = 4;
+let camY = -1;
+
+// Game state
+let starsCollected = 0;
+let deaths = 0;
+let runTime = 0;
+let worldTime = 0;
+let gameStarted = false;
+let gameWon = false;
+let paused = false;
+
+// Input state
+const keys = new Set();
+const touchState = { left: false, right: false, jumpHeld: false };
+let jumpJustPressed = false;
+let dashJustPressed = false;
+
+function formatTime(sec) {
+  const total = Math.max(0, Math.floor(sec));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function setPaused(nextPaused) {
+  if (!gameStarted || gameWon) return;
+  paused = nextPaused;
+  pauseOverlay.classList.toggle('hidden', !paused);
+  btnPause.textContent = paused ? '▶ Fortsätt' : '⏸ Paus';
+}
+
+function togglePause() {
+  setPaused(!paused);
+}
+
+function respawnAtCheckpoint() {
+  if (!gameStarted || gameWon) return;
+  player.spawn(player.spawnPos);
+  camX = player.x + 2.5;
+  camY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
+  setPaused(false);
+  updateHUD();
+}
+
+window.addEventListener('keydown', (e) => {
+  const code = e.code;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) {
+    e.preventDefault();
+  }
+  if (!keys.has(code)) {
+    if (code === 'Space' || code === 'KeyW' || code === 'ArrowUp') {
+      jumpJustPressed = true;
+    }
+    if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyX' || code === 'KeyK') {
+      dashJustPressed = true;
+    }
+    if (code === 'KeyP' || code === 'Escape') {
+      togglePause();
+    }
+    if (code === 'KeyR' && gameStarted && !gameWon) {
+      if (e.shiftKey) {
+        resetWorld();
+      } else {
+        respawnAtCheckpoint();
+      }
+    }
+    if (code === 'KeyM') {
+      toggleMute();
+    }
+  }
+  keys.add(code);
+});
+
+window.addEventListener('keyup', (e) => {
+  keys.delete(e.code);
+});
+
+// Touch controls binding
+function bindTouchHold(el, keyName) {
+  if (!el) return;
+  const start = (e) => {
+    e.preventDefault();
+    touchState[keyName] = true;
+    el.classList.add('active');
+    if (keyName === 'jumpHeld') jumpJustPressed = true;
+  };
+  const end = (e) => {
+    e.preventDefault();
+    touchState[keyName] = false;
+    el.classList.remove('active');
+  };
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('pointerleave', end);
+}
+
+bindTouchHold(document.getElementById('touch-left'), 'left');
+bindTouchHold(document.getElementById('touch-right'), 'right');
+bindTouchHold(document.getElementById('touch-jump'), 'jumpHeld');
+
+const touchDashBtn = document.getElementById('touch-dash');
+if (touchDashBtn) {
+  touchDashBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dashJustPressed = true;
+    touchDashBtn.classList.add('active');
+  });
+  const clearDash = () => touchDashBtn.classList.remove('active');
+  touchDashBtn.addEventListener('pointerup', clearDash);
+  touchDashBtn.addEventListener('pointercancel', clearDash);
+}
+
+function toggleMute() {
+  const muted = sound.toggleMute();
+  btnMute.textContent = muted ? '🔇 Tyst' : '🔊 Ljud';
+}
+
+function updateHUD() {
+  let secName = WORLD_DATA.sections[0].name;
+  for (const s of WORLD_DATA.sections) {
+    if (player.x >= s.startX) secName = s.name;
+  }
+  levelNameEl.textContent = secName;
+  starCountEl.textContent = `${starsCollected} / ${WORLD_DATA.stars.length}`;
+
+  const pct = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(((player.x - WORLD_DATA.spawn.x) / (WORLD_DATA.goal.x - WORLD_DATA.spawn.x)) * 100)
+    )
+  );
+  progressPctEl.textContent = `${pct}%`;
+  runTimerEl.textContent = formatTime(runTime);
+}
+
+function resetWorld() {
+  starsCollected = 0;
+  deaths = 0;
+  runTime = 0;
+  worldTime = 0;
+  gameWon = false;
+  paused = false;
+  pauseOverlay.classList.add('hidden');
+  btnPause.textContent = '⏸ Paus';
+  world.loadWorld(WORLD_DATA);
+  player.spawn(WORLD_DATA.spawn);
+  camX = player.x + 2.5;
+  camY = -0.8;
+  updateHUD();
+}
+
+function triggerVictory() {
+  if (gameWon) return;
+  gameWon = true;
+  sound.playPageFlip();
+
+  let bestTime = Number(localStorage.getItem(BEST_TIME_KEY) || Infinity);
+  let bestStars = Number(localStorage.getItem(BEST_STARS_KEY) || 0);
+  if (runTime < bestTime) {
+    bestTime = runTime;
+    localStorage.setItem(BEST_TIME_KEY, bestTime.toFixed(1));
+  }
+  if (starsCollected > bestStars) {
+    bestStars = starsCollected;
+    localStorage.setItem(BEST_STARS_KEY, String(bestStars));
+  }
+
+  winStatsEl.textContent = `Du samlade ${starsCollected} av ${WORLD_DATA.stars.length} stjärnor på ${formatTime(runTime)} (${deaths} omstarter)!`;
+  winBestEl.textContent = `Personbästa: ${formatTime(bestTime)} • Flest stjärnor: ${bestStars} / ${WORLD_DATA.stars.length}`;
+  winOverlay.classList.remove('hidden');
+}
+
+resetWorld();
+
+btnStart.addEventListener('click', () => {
+  sound.init();
+  sound.playPageFlip();
+  startOverlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+  gameStarted = true;
+});
+
+btnPlayAgain.addEventListener('click', () => {
+  sound.init();
+  sound.playPageFlip();
+  winOverlay.classList.add('hidden');
+  resetWorld();
+  gameStarted = true;
+});
+
+btnPause.addEventListener('click', togglePause);
+btnResume.addEventListener('click', () => setPaused(false));
+btnCheckpoint.addEventListener('click', respawnAtCheckpoint);
+btnFullRestart.addEventListener('click', resetWorld);
+btnRestart.addEventListener('click', () => {
+  if (gameStarted && !gameWon) {
+    resetWorld();
+  }
+});
+btnMute.addEventListener('click', toggleMute);
+
+// Main loop
+let lastTime = performance.now();
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.033, (now - lastTime) / 1000);
+  lastTime = now;
+
+  if (!paused) {
+    worldTime += dt;
+    world.update(worldTime, dt);
+  }
+
+  if (gameStarted && !gameWon && !paused) {
+    runTime += dt;
+    const input = {
+      left: keys.has('KeyA') || keys.has('ArrowLeft') || touchState.left,
+      right: keys.has('KeyD') || keys.has('ArrowRight') || touchState.right,
+      up: keys.has('KeyW') || keys.has('ArrowUp'),
+      jumpPressed: jumpJustPressed,
+      jumpHeld: keys.has('Space') || keys.has('KeyW') || keys.has('ArrowUp') || touchState.jumpHeld,
+      dashPressed: dashJustPressed,
+    };
+
+    const result = player.update(dt, input, world);
+    if (result.starsCollectedNow > 0) {
+      starsCollected += result.starsCollectedNow;
+    }
+    if (result.died) {
+      deaths += 1;
+    }
+    updateHUD();
+    if (result.reachedGoal) {
+      triggerVictory();
+    }
+  } else if (!paused) {
+    player.updateParticles(dt);
+  }
+
+  jumpJustPressed = false;
+  dashJustPressed = false;
+
+  // Smooth 2D sidescrolling camera with lookahead
+  const lookAhead = player.facing * 2.4;
+  const targetCamX = Math.max(4, Math.min(396, player.x + lookAhead));
+  const targetCamY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
+
+  camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
+  camY += (targetCamY - camY) * Math.min(1, dt * 4.2);
+
+  // Render pure 2D boiling pencil world & character
+  world.draw(ctx, camX, camY, viewW, viewH, worldTime);
+  player.draw(ctx, camX, camY, viewW, viewH, worldTime);
+}
+
+requestAnimationFrame(animate);
+})();
+  </script>
+</body>
+</html>

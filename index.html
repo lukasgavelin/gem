@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemmets Resa — Handritat 2D-äventyr</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="paper-badge">
+        <span class="badge-label">SIDA</span>
+        <span id="level-name" class="badge-value">1. Anteckningslinjer</span>
+      </div>
+      <div class="paper-badge">
+        <span class="badge-label">STJÄRNOR</span>
+        <span id="star-count" class="badge-value">0 / 24</span>
+      </div>
+      <div class="paper-badge">
+        <span class="badge-label">FRAMSTEG</span>
+        <span id="progress-pct" class="badge-value">0%</span>
+      </div>
+      <div class="paper-badge">
+        <span class="badge-label">TID</span>
+        <span id="run-timer" class="badge-value">0:00</span>
+      </div>
+    </div>
+
+    <div class="hud-right">
+      <button id="btn-pause" class="paper-btn" title="Pausa (P / Esc)">⏸ Paus</button>
+      <button id="btn-restart" class="paper-btn" title="Starta om från början (Shift+R)">↺ Ny runda</button>
+      <button id="btn-mute" class="paper-btn" title="Ljud på/av (M)">🔊 Ljud</button>
+    </div>
+
+    <div class="controls-hint">
+      <span><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> Spring</span>
+      <span><kbd>Space</kbd> / <kbd>W</kbd> Hoppa &amp; Vägghopp</span>
+      <span><kbd>Shift</kbd> / <kbd>X</kbd> Fjäder-dash</span>
+      <span><kbd>R</kbd> Checkpoint</span>
+      <span><kbd>P</kbd> Paus</span>
+    </div>
+
+    <!-- Mobile / Touch controls (shown only on coarse pointers) -->
+    <div id="touch-controls" class="touch-controls">
+      <div class="touch-group">
+        <button id="touch-left" class="touch-btn" aria-label="Vänster">◀</button>
+        <button id="touch-right" class="touch-btn" aria-label="Höger">▶</button>
+      </div>
+      <div class="touch-group">
+        <button id="touch-dash" class="touch-btn touch-dash" aria-label="Dash">⚡</button>
+        <button id="touch-jump" class="touch-btn touch-jump" aria-label="Hoppa">▲</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start / Title Overlay -->
+  <div id="start-overlay" class="overlay">
+    <div class="paper-card">
+      <div class="pin"></div>
+      <p class="subtitle">HANDRITAT 2D SIDESCROLLER</p>
+      <h1>Gemmets Resa</h1>
+      <p class="description">
+        En levande blyertsvärld där allt ritas i realtid.
+        Ta dig från vänster till höger över linjer, rutnät och skissblad —
+        studsa på suddgummin, vägghoppa och dasha förbi bläcktaggarna!
+      </p>
+      <div class="controls-grid">
+        <div><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd></div><div>Spring</div>
+        <div><kbd>Space</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></div><div>Hoppa &amp; Vägghopp</div>
+        <div><kbd>Shift</kbd> / <kbd>X</kbd> / <kbd>K</kbd></div><div>Fjäder-dash</div>
+      </div>
+      <button id="btn-start" class="primary-btn">Börja rita</button>
+    </div>
+  </div>
+
+  <!-- Pause Overlay -->
+  <div id="pause-overlay" class="overlay hidden">
+    <div class="paper-card">
+      <div class="pin"></div>
+      <p class="subtitle">PAUSAD</p>
+      <h1>Bokmärke lagt</h1>
+      <p class="description">Ta en andningspaus innan du hoppar vidare.</p>
+      <div class="pause-actions">
+        <button id="btn-resume" class="primary-btn">Fortsätt</button>
+        <button id="btn-checkpoint" class="paper-btn">↺ Till checkpoint (R)</button>
+        <button id="btn-full-restart" class="paper-btn">Börja om från början</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Overlay -->
+  <div id="win-overlay" class="overlay hidden">
+    <div class="paper-card">
+      <div class="pin"></div>
+      <p class="subtitle">SISTA SIDAN KLAR!</p>
+      <h1>Snyggt jobbat!</h1>
+      <p id="win-stats" class="description">Du tog dig genom hela skissblocket.</p>
+      <p id="win-best" class="best-stats"></p>
+      <button id="btn-play-again" class="primary-btn">Spela igen</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
