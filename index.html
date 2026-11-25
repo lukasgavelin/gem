@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Gemmets Resa — Handritat 2.5D-äventyr</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fffdf6' stroke='%23182230' stroke-width='4'/%3E%3Cpath d='M25 38V20a7 7 0 0 1 14 0v22a11 11 0 0 1-22 0V18a14 14 0 0 1 28 0v18' fill='none' stroke='%232563eb' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,7 +28,7 @@
     <div class="hud-left">
       <div class="paper-badge desktop-only-badge">
         <span class="badge-label">SIDA</span>
-        <span id="level-name" class="badge-value">1. Anteckningslinjer</span>
+        <span id="level-name" class="badge-value">1. Svenska (2D-anteckningsbok)</span>
       </div>
       <div class="paper-badge">
         <span class="badge-label">STJÄRNOR</span>
@@ -42,6 +43,8 @@
         <span id="run-timer" class="badge-value">0:00</span>
       </div>
     </div>
+
+    <div id="chapter-banner" class="chapter-banner hidden" aria-live="polite"></div>
 
     <div id="rotate-hint" class="rotate-hint">
       <span>📱 Vänd gärna mobilen till liggande läge</span>
@@ -64,7 +67,8 @@
 
     <!-- Mobile / Touch controls (shown only on coarse pointers) -->
     <div id="touch-controls" class="touch-controls">
-      <div id="touch-dpad" class="touch-group">
+      <div id="touch-dpad" class="touch-group touch-dpad">
+        <span class="dpad-up-hint" aria-hidden="true">▲ uppåt</span>
         <button id="touch-left" class="touch-btn" aria-label="Vänster">◀</button>
         <button id="touch-right" class="touch-btn" aria-label="Höger">▶</button>
       </div>
@@ -79,7 +83,7 @@
   <div id="start-overlay" class="overlay">
     <div class="paper-card">
       <div class="pin"></div>
-      <p class="subtitle">HANDRITAT 2D SIDESCROLLER</p>
+      <p class="subtitle">HANDRITAT 2D → 3D-ÄVENTYR</p>
       <h1>Gemmets Resa</h1>
       <p class="description">
         En levande blyertsvärld där allt ritas i realtid.
@@ -91,7 +95,31 @@
         <div><kbd>Space</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></div><div>Hoppa &amp; Vägghopp</div>
         <div><kbd>Shift</kbd> / <kbd>X</kbd> / <kbd>K</kbd></div><div>Fjäder-dash</div>
       </div>
-      <button id="btn-start" class="primary-btn">Börja rita</button>
+      <div class="start-actions">
+        <button id="btn-resume-saved" class="primary-btn resume-btn hidden" type="button">Fortsätt runda</button>
+        <button id="btn-start" class="primary-btn" type="button">Börja rita</button>
+      </div>
+      <div class="chapter-select">
+        <p class="chapter-select-label">VÄLJ KAPITEL</p>
+        <div class="chapter-grid">
+          <button class="chapter-btn" type="button" data-chapter="0">
+            <span class="ch-title">1. Svenska</span>
+            <span class="ch-stars" id="ch-stars-0">★ 0/12</span>
+          </button>
+          <button class="chapter-btn" type="button" data-chapter="1">
+            <span class="ch-title">2. Matematik</span>
+            <span class="ch-stars" id="ch-stars-1">★ 0/12</span>
+          </button>
+          <button class="chapter-btn" type="button" data-chapter="2">
+            <span class="ch-title">3. NO &amp; Labb</span>
+            <span class="ch-stars" id="ch-stars-2">★ 0/12</span>
+          </button>
+          <button class="chapter-btn" type="button" data-chapter="3">
+            <span class="ch-title">4. Slöjd &amp; Bild</span>
+            <span class="ch-stars" id="ch-stars-3">★ 0/12</span>
+          </button>
+        </div>
+      </div>
       <div class="cache-row">
         <button id="btn-clear-cache-start" class="link-btn" type="button">🔄 Rensa cache &amp; hämta senaste</button>
       </div>

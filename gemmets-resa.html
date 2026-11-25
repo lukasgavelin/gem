@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Gemmets Resa — Handritat 2.5D-äventyr</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fffdf6' stroke='%23182230' stroke-width='4'/%3E%3Cpath d='M25 38V20a7 7 0 0 1 14 0v22a11 11 0 0 1-22 0V18a14 14 0 0 1 28 0v18' fill='none' stroke='%232563eb' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -272,6 +273,97 @@ kbd {
   box-shadow: 1px 1px 0 var(--ink-dark);
 }
 
+.start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.resume-btn {
+  background: #0f766e;
+}
+
+.chapter-select {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.chapter-select-label {
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-bottom: 7px;
+}
+
+.chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.chapter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: var(--paper-tint);
+  border: 2px solid var(--ink-dark);
+  border-radius: 7px 9px 8px 6px;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.chapter-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink-dark);
+}
+
+.chapter-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.ch-stars {
+  font-size: 12px;
+  color: #b45309;
+  white-space: nowrap;
+}
+
+.chapter-banner {
+  position: absolute;
+  top: max(68px, calc(env(safe-area-inset-top) + 56px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper-ice);
+  border: 2.5px solid var(--ink-dark);
+  border-radius: 10px 8px 11px 9px;
+  padding: 8px 20px;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  box-shadow: 4px 4px 0 var(--ink-dark);
+  pointer-events: none;
+  z-index: 16;
+  white-space: nowrap;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.chapter-banner.fade-out {
+  opacity: 0;
+  transform: translate(-50%, -8px);
+}
+
 .pause-actions {
   display: flex;
   flex-direction: column;
@@ -363,6 +455,34 @@ kbd {
   pointer-events: auto;
 }
 
+.touch-dpad {
+  position: relative;
+}
+
+.dpad-up-hint {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-dark);
+  background: rgba(254, 243, 199, 0.85);
+  border: 1.5px solid var(--ink-dark);
+  border-radius: 999px;
+  padding: 0 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.touch-dpad.up-active .dpad-up-hint {
+  background: var(--accent-blue);
+  color: #fff;
+  opacity: 1;
+}
+
 .touch-btn {
   width: 64px;
   height: 64px;
@@ -448,6 +568,18 @@ kbd {
   .pause-actions {
     gap: 7px;
   }
+  .chapter-select {
+    margin-top: 10px;
+  }
+  .chapter-btn {
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+  .chapter-banner {
+    top: max(46px, calc(env(safe-area-inset-top) + 40px));
+    font-size: 14px;
+    padding: 5px 14px;
+  }
   .cache-row {
     margin-top: 8px;
   }
@@ -469,7 +601,7 @@ kbd {
     <div class="hud-left">
       <div class="paper-badge desktop-only-badge">
         <span class="badge-label">SIDA</span>
-        <span id="level-name" class="badge-value">1. Anteckningslinjer</span>
+        <span id="level-name" class="badge-value">1. Svenska (2D-anteckningsbok)</span>
       </div>
       <div class="paper-badge">
         <span class="badge-label">STJÄRNOR</span>
@@ -484,6 +616,8 @@ kbd {
         <span id="run-timer" class="badge-value">0:00</span>
       </div>
     </div>
+
+    <div id="chapter-banner" class="chapter-banner hidden" aria-live="polite"></div>
 
     <div id="rotate-hint" class="rotate-hint">
       <span>📱 Vänd gärna mobilen till liggande läge</span>
@@ -506,7 +640,8 @@ kbd {
 
     <!-- Mobile / Touch controls (shown only on coarse pointers) -->
     <div id="touch-controls" class="touch-controls">
-      <div id="touch-dpad" class="touch-group">
+      <div id="touch-dpad" class="touch-group touch-dpad">
+        <span class="dpad-up-hint" aria-hidden="true">▲ uppåt</span>
         <button id="touch-left" class="touch-btn" aria-label="Vänster">◀</button>
         <button id="touch-right" class="touch-btn" aria-label="Höger">▶</button>
       </div>
@@ -521,7 +656,7 @@ kbd {
   <div id="start-overlay" class="overlay">
     <div class="paper-card">
       <div class="pin"></div>
-      <p class="subtitle">HANDRITAT 2D SIDESCROLLER</p>
+      <p class="subtitle">HANDRITAT 2D → 3D-ÄVENTYR</p>
       <h1>Gemmets Resa</h1>
       <p class="description">
         En levande blyertsvärld där allt ritas i realtid.
@@ -533,7 +668,31 @@ kbd {
         <div><kbd>Space</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></div><div>Hoppa &amp; Vägghopp</div>
         <div><kbd>Shift</kbd> / <kbd>X</kbd> / <kbd>K</kbd></div><div>Fjäder-dash</div>
       </div>
-      <button id="btn-start" class="primary-btn">Börja rita</button>
+      <div class="start-actions">
+        <button id="btn-resume-saved" class="primary-btn resume-btn hidden" type="button">Fortsätt runda</button>
+        <button id="btn-start" class="primary-btn" type="button">Börja rita</button>
+      </div>
+      <div class="chapter-select">
+        <p class="chapter-select-label">VÄLJ KAPITEL</p>
+        <div class="chapter-grid">
+          <button class="chapter-btn" type="button" data-chapter="0">
+            <span class="ch-title">1. Svenska</span>
+            <span class="ch-stars" id="ch-stars-0">★ 0/12</span>
+          </button>
+          <button class="chapter-btn" type="button" data-chapter="1">
+            <span class="ch-title">2. Matematik</span>
+            <span class="ch-stars" id="ch-stars-1">★ 0/12</span>
+          </button>
+          <button class="chapter-btn" type="button" data-chapter="2">
+            <span class="ch-title">3. NO &amp; Labb</span>
+            <span class="ch-stars" id="ch-stars-2">★ 0/12</span>
+          </button>
+          <button class="chapter-btn" type="button" data-chapter="3">
+            <span class="ch-title">4. Slöjd &amp; Bild</span>
+            <span class="ch-stars" id="ch-stars-3">★ 0/12</span>
+          </button>
+        </div>
+      </div>
       <div class="cache-row">
         <button id="btn-clear-cache-start" class="link-btn" type="button">🔄 Rensa cache &amp; hämta senaste</button>
       </div>
@@ -577,10 +736,17 @@ import * as THREE from 'three';
 // --- js/audio.js ---
 // Procedural Web Audio API sound effects for tactile paper & wire feedback
 
+const MUTE_STORAGE_KEY = 'gemmets_resa_muted';
+
 class SoundEngine {
   constructor() {
     this.ctx = null;
-    this.muted = false;
+    this.noiseBuffer = null;
+    try {
+      this.muted = localStorage.getItem(MUTE_STORAGE_KEY) === '1';
+    } catch {
+      this.muted = false;
+    }
   }
 
   init() {
@@ -593,10 +759,27 @@ class SoundEngine {
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+    this._ensureNoiseBuffer();
+  }
+
+  _ensureNoiseBuffer() {
+    if (!this.ctx || this.noiseBuffer) return;
+    const len = this.ctx.sampleRate;
+    const buffer = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    this.noiseBuffer = buffer;
   }
 
   toggleMute() {
     this.muted = !this.muted;
+    try {
+      localStorage.setItem(MUTE_STORAGE_KEY, this.muted ? '1' : '0');
+    } catch {
+      // Ignore storage errors in restricted contexts
+    }
     return this.muted;
   }
 
@@ -670,19 +853,14 @@ class SoundEngine {
   }
 
   playLand() {
-    if (!this._ready()) return;
+    if (!this._ready() || !this.noiseBuffer) return;
     const now = this.ctx.currentTime;
     const pitch = 0.88 + Math.random() * 0.24;
-    // Soft paper tap using filtered noise
-    const bufferSize = this.ctx.sampleRate * 0.05;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-    }
+    const duration = 0.05;
 
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.noiseBuffer;
+    noise.loop = true;
     noise.playbackRate.value = pitch;
 
     const filter = this.ctx.createBiquadFilter();
@@ -691,28 +869,23 @@ class SoundEngine {
 
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(this.ctx.destination);
-    noise.start(now);
+    noise.start(now, Math.random() * 0.5);
+    noise.stop(now + duration + 0.01);
   }
 
   playWallScratch() {
-    if (!this._ready()) return;
+    if (!this._ready() || !this.noiseBuffer) return;
     const now = this.ctx.currentTime;
     const duration = 0.05;
-    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      const env = Math.sin((i / bufferSize) * Math.PI);
-      data[i] = (Math.random() * 2 - 1) * env;
-    }
 
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.noiseBuffer;
+    noise.loop = true;
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';
@@ -720,13 +893,15 @@ class SoundEngine {
     filter.Q.value = 2.6;
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.04, now + duration * 0.4);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(this.ctx.destination);
-    noise.start(now);
+    noise.start(now, Math.random() * 0.5);
+    noise.stop(now + duration + 0.01);
   }
 
   playCheckpoint() {
@@ -782,19 +957,13 @@ class SoundEngine {
   }
 
   playPageFlip() {
-    if (!this._ready()) return;
+    if (!this._ready() || !this.noiseBuffer) return;
     const now = this.ctx.currentTime;
     const duration = 0.45;
-    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      const env = Math.sin((i / bufferSize) * Math.PI);
-      data[i] = (Math.random() * 2 - 1) * env;
-    }
 
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.noiseBuffer;
+    noise.loop = true;
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';
@@ -803,13 +972,31 @@ class SoundEngine {
     filter.Q.value = 1.2;
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.22, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + duration * 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.005, now + duration);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(this.ctx.destination);
-    noise.start(now);
+    noise.start(now, Math.random() * 0.4);
+    noise.stop(now + duration + 0.02);
+  }
+
+  playMagnet() {
+    if (!this._ready()) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(660, now + 0.12);
+    gain.gain.setValueAtTime(0.07, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
   }
 }
 const sound = new SoundEngine();
@@ -1175,7 +1362,10 @@ function toTexture(canvas, repeatX = 1, repeatY = 1) {
   }
   return tex;
 }
+
+const chapterTexCache = new Map();
 function createChapterPaperTexture(theme) {
+  if (chapterTexCache.has(theme)) return chapterTexCache.get(theme);
   const w = 512;
   const h = 512;
   const canvas = makeCanvas(w, h);
@@ -1275,7 +1465,9 @@ function createChapterPaperTexture(theme) {
     }
   }
 
-  return toTexture(canvas, 6, 1.5);
+  const tex = toTexture(canvas, 6, 1.5);
+  chapterTexCache.set(theme, tex);
+  return tex;
 }
 
 const platformTexCache = new Map();
@@ -1430,7 +1622,11 @@ function getPlatformTexture(style = 'default', boilFrame = 0, shaking = false) {
   platformTexCache.set(key, tex);
   return tex;
 }
+
+const signTexCache = new Map();
 function createSignTexture(sign) {
+  const key = `${sign.x}:${sign.y}:${sign.text}:${sign.subtext || ''}`;
+  if (signTexCache.has(key)) return signTexCache.get(key);
   const w = 360;
   const h = 160;
   const canvas = makeCanvas(w, h);
@@ -1468,7 +1664,9 @@ function createSignTexture(sign) {
     });
   }
 
-  return toTexture(canvas);
+  const tex = toTexture(canvas);
+  signTexCache.set(key, tex);
+  return tex;
 }
 
 const doodleTexCache = new Map();
@@ -1902,7 +2100,7 @@ const WORLD_DATA = {
       x: 602.5,
       y: 1.7,
       text: 'KAPITEL 3: NO & LABB',
-      subtext: 'HALA GLASBLOCK & LABBFJÄDRAR',
+      subtext: 'HALA GLASBLOCK, FJÄDRAR & MAGNETER',
       tilt: 0.02,
     },
     {
@@ -2253,6 +2451,13 @@ const WORLD_DATA = {
     { x: 1133.0, y: 3.0 },
     { x: 1163.8, y: 5.0 },
   ],
+  magnets: [
+    { x: 642.2, y: 2.9, radius: 3.2 },
+    { x: 691.2, y: 1.6, radius: 3.2 },
+    { x: 745.8, y: 3.1, radius: 3.2 },
+    { x: 819.2, y: 3.6, radius: 3.2 },
+    { x: 870.8, y: 2.8, radius: 3.2 },
+  ],
 };
 
 // --- js/book.js ---
@@ -2267,15 +2472,32 @@ class BookWorld {
     this.hazards = [];
     this.stars = [];
     this.checkpoints = [];
+    this.magnets = [];
     this.zLayers = [];
     this.goal = null;
     this.maxX = 1212;
     this.motesPoints = null;
+    this.moteBaseX = [];
     this.moteBaseY = [];
     this.motePhases = [];
   }
 
   _clearGroup() {
+    const geometries = new Set();
+    const materials = new Set();
+    this.group.traverse((obj) => {
+      if (obj.geometry) geometries.add(obj.geometry);
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          for (const m of obj.material) materials.add(m);
+        } else {
+          materials.add(obj.material);
+        }
+      }
+    });
+    for (const g of geometries) g.dispose();
+    for (const m of materials) m.dispose();
+
     while (this.group.children.length > 0) {
       const child = this.group.children.pop();
       this.group.remove(child);
@@ -2360,6 +2582,18 @@ class BookWorld {
       bookblock: 0x60a5fa,
     };
 
+    const sideMatCache = new Map();
+    const getSideMat = (style) => {
+      if (sideMatCache.has(style)) return sideMatCache.get(style);
+      const mat = new THREE.MeshStandardMaterial({
+        color: sideMatMap[style] || 0xb8c7d9,
+        roughness: 0.85,
+      });
+      sideMatCache.set(style, mat);
+      return mat;
+    };
+    const ghostMat = new THREE.LineBasicMaterial({ color: 0x182230, transparent: true, opacity: 0.28 });
+
     this.platforms = worldData.platforms.map((p, idx) => {
       const depth = p.h > 2 ? 1.15 : 0.95;
       const geo = new THREE.BoxGeometry(p.w, p.h, depth);
@@ -2369,10 +2603,7 @@ class BookWorld {
         roughness: p.slippery ? 0.25 : 0.82,
         metalness: p.slippery ? 0.08 : 0.02,
       });
-      const sideMat = new THREE.MeshStandardMaterial({
-        color: sideMatMap[p.style] || 0xb8c7d9,
-        roughness: 0.85,
-      });
+      const sideMat = getSideMat(p.style);
       // BoxGeometry faces: +x, -x, +y, -y, +z (front), -z (back)
       const mesh = new THREE.Mesh(geo, [sideMat, sideMat, frontMat, sideMat, frontMat, sideMat]);
       mesh.position.set(p.x, p.y, 0);
@@ -2383,10 +2614,7 @@ class BookWorld {
 
       // Dashed wireframe outline for fallen crumble blocks
       const edgeGeo = new THREE.EdgesGeometry(geo);
-      const ghost = new THREE.LineSegments(
-        edgeGeo,
-        new THREE.LineBasicMaterial({ color: 0x182230, transparent: true, opacity: 0.28 })
-      );
+      const ghost = new THREE.LineSegments(edgeGeo, ghostMat);
       ghost.position.copy(mesh.position);
       ghost.rotation.copy(mesh.rotation);
       ghost.visible = false;
@@ -2583,18 +2811,70 @@ class BookWorld {
 
     this.goal = { ...worldData.goal, radius: 1.0, seed: 2800, mesh: ribbonMesh };
 
-    // 10. 3D Floating Graphite Dust Motes
-    const moteCount = Math.max(240, Math.round(this.maxX * 0.42));
+    // 10. 3D Horseshoe Magnets (Kapitel 3: NO & Labb)
+    const archGeo = new THREE.TorusGeometry(0.42, 0.12, 10, 20, Math.PI);
+    const archMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4, metalness: 0.35 });
+    const poleGeo = new THREE.BoxGeometry(0.24, 0.28, 0.24);
+    const poleLeftMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35, metalness: 0.4 });
+    const poleRightMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.35, metalness: 0.4 });
+
+    this.magnets = (worldData.magnets || []).map((m, idx) => {
+      const radius = m.radius || 3.2;
+      const pull = m.pull || 26;
+      const mGroup = new THREE.Group();
+      mGroup.position.set(m.x, m.y, 0);
+
+      const arch = new THREE.Mesh(archGeo, archMat);
+      arch.castShadow = true;
+      mGroup.add(arch);
+
+      const leftPole = new THREE.Mesh(poleGeo, poleLeftMat);
+      leftPole.position.set(-0.42, -0.14, 0);
+      leftPole.castShadow = true;
+      const rightPole = new THREE.Mesh(poleGeo, poleRightMat);
+      rightPole.position.set(0.42, -0.14, 0);
+      rightPole.castShadow = true;
+      mGroup.add(leftPole, rightPole);
+
+      const ringGeo = new THREE.RingGeometry(0.6, radius, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.z = -0.12;
+      mGroup.add(ring);
+
+      this.group.add(mGroup);
+      return {
+        x: m.x,
+        y: m.y,
+        radius,
+        pull,
+        seed: 4200 + idx * 17.3,
+        group: mGroup,
+        ring,
+        ringMat,
+      };
+    });
+
+    // 11. 3D Floating Graphite Dust Motes (local window around camera)
+    const moteCount = 90;
     const positions = new Float32Array(moteCount * 3);
+    this.moteBaseX = [];
     this.moteBaseY = [];
     this.motePhases = [];
+    const windowSpan = 36;
     for (let i = 0; i < moteCount; i++) {
-      const x = Math.random() * (this.maxX + 10) - 5;
-      const y = (Math.random() - 0.5) * 12;
+      const x = (Math.random() - 0.5) * windowSpan;
+      const y = (Math.random() - 0.5) * 11;
       const z = (Math.random() - 0.5) * 2.8;
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
+      this.moteBaseX.push(x);
       this.moteBaseY.push(y);
       this.motePhases.push(Math.random() * Math.PI * 2);
     }
@@ -2602,11 +2882,12 @@ class BookWorld {
     moteGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const moteMat = new THREE.PointsMaterial({
       color: 0x475569,
-      size: 0.075,
+      size: 0.08,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.38,
     });
     this.motesPoints = new THREE.Points(moteGeo, moteMat);
+    this.motesPoints.frustumCulled = false;
     this.group.add(this.motesPoints);
   }
 
@@ -2641,7 +2922,7 @@ class BookWorld {
     }
   }
 
-  update(time, dt, dimensionMix = 1) {
+  update(time, dt, dimensionMix = 1, focusX = 0) {
     const boilFrame = Math.floor(time * BOIL_FPS) % 3;
     const zScale = 0.02 + 0.98 * dimensionMix;
 
@@ -2680,6 +2961,14 @@ class BookWorld {
         }
       }
 
+      const distFromCam = Math.abs(p.x - focusX);
+      p.mesh.castShadow = distFromCam < 28;
+      if (distFromCam > 42) {
+        p.mesh.visible = false;
+        p.ghost.visible = false;
+        continue;
+      }
+
       // Sync 3D mesh state
       const isFallen = p.crumbleState === 'fallen';
       p.mesh.visible = !isFallen || (dimensionMix > 0.25 && p.fallAnim < 0.95);
@@ -2704,7 +2993,6 @@ class BookWorld {
       const desiredTex = getPlatformTexture(p.style, boilFrame, p.crumbleState === 'shaking');
       if (p.frontMat.map !== desiredTex) {
         p.frontMat.map = desiredTex;
-        p.frontMat.needsUpdate = true;
       }
     }
 
@@ -2719,6 +3007,13 @@ class BookWorld {
         cp.finialMat.color.setHex(0x0284c7);
         cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24 * dimensionMix;
       }
+    }
+
+    for (const m of this.magnets) {
+      m.group.scale.set(1, 1, zScale);
+      const pulse = 0.94 + Math.sin(time * 4.0 + m.x) * 0.06;
+      m.ring.scale.setScalar(pulse);
+      m.ringMat.opacity = 0.07 + 0.05 * Math.sin(time * 4.0 + m.x);
     }
 
     for (const s of this.stars) {
@@ -2740,7 +3035,13 @@ class BookWorld {
 
     if (this.motesPoints) {
       const posAttr = this.motesPoints.geometry.getAttribute('position');
+      const span = 36;
+      const halfSpan = span * 0.5;
       for (let i = 0; i < this.moteBaseY.length; i++) {
+        let relX = (this.moteBaseX[i] + time * 0.18 - focusX) % span;
+        if (relX < -halfSpan) relX += span;
+        if (relX > halfSpan) relX -= span;
+        posAttr.setX(i, focusX + relX);
         posAttr.setY(i, this.moteBaseY[i] + Math.sin(time * 0.8 + this.motePhases[i]) * 0.25);
       }
       posAttr.needsUpdate = true;
@@ -2754,6 +3055,8 @@ class PaperclipPlayer {
     this.scene = scene;
     this.particles = [];
     this.speedLines = [];
+    this.particlePool = [];
+    this.speedLinePool = [];
 
     // Collision half-extents in world units
     this.halfW = 0.28;
@@ -2848,6 +3151,19 @@ class PaperclipPlayer {
 
     this.scene.add(this.group);
 
+    // Translucent ghost mesh for best-run replay
+    this.ghostGroup = new THREE.Group();
+    const ghostMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.32,
+      wireframe: false,
+    });
+    const ghostWire = new THREE.Mesh(tubeGeo, ghostMat);
+    this.ghostGroup.add(ghostWire);
+    this.ghostGroup.visible = false;
+    this.scene.add(this.ghostGroup);
+
     this.fxGroup = new THREE.Group();
     this.scene.add(this.fxGroup);
     this.particleGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
@@ -2871,21 +3187,58 @@ class PaperclipPlayer {
     this.spinAngle = 0;
     this.scaleX = 1;
     this.scaleY = 1;
-    this.speedLines = [];
+    while (this.speedLines.length > 0) {
+      const sl = this.speedLines.pop();
+      sl.mesh.visible = false;
+      this.speedLinePool.push({ mesh: sl.mesh, mat: sl.mat });
+    }
     this.speedLineTimer = 0;
     this.isWallSliding = false;
     this.wallSlideTimer = 0;
+  }
+
+  _acquireParticle(color, roughness = 0.6) {
+    if (this.particlePool.length > 0) {
+      const item = this.particlePool.pop();
+      item.mat.color.set(color);
+      item.mat.roughness = roughness;
+      item.mat.opacity = 1;
+      item.mesh.visible = true;
+      return item;
+    }
+    const mat = new THREE.MeshStandardMaterial({ color, roughness, transparent: true });
+    const mesh = new THREE.Mesh(this.particleGeo, mat);
+    this.fxGroup.add(mesh);
+    return { mesh, mat };
+  }
+
+  _acquireSpeedLine(isDashing) {
+    const hex = isDashing ? 0x2563eb : 0x182230;
+    if (this.speedLinePool.length > 0) {
+      const item = this.speedLinePool.pop();
+      item.mat.color.setHex(hex);
+      item.mat.opacity = 0.85;
+      item.mesh.visible = true;
+      return item;
+    }
+    const mat = new THREE.MeshBasicMaterial({
+      color: hex,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const mesh = new THREE.Mesh(this.lineGeo, mat);
+    this.fxGroup.add(mesh);
+    return { mesh, mat };
   }
 
   _spawnParticles(x, y, count, color = '#67e8f9', speed = 4.5) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const spd = (0.4 + Math.random() * 0.8) * speed;
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, transparent: true });
-      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      const { mesh, mat } = this._acquireParticle(color, 0.6);
       mesh.position.set(x, y, (Math.random() - 0.5) * 0.3);
       mesh.castShadow = true;
-      this.fxGroup.add(mesh);
+      mesh.scale.setScalar(1);
 
       this.particles.push({
         x,
@@ -2898,6 +3251,7 @@ class PaperclipPlayer {
         rotSpeed: (Math.random() - 0.5) * 14,
         life: 0.35 + Math.random() * 0.25,
         maxLife: 0.55,
+        baseScale: 1,
         mesh,
         mat,
       });
@@ -2910,11 +3264,10 @@ class PaperclipPlayer {
       const vx = -wallDir * (1.8 + Math.random() * 2.8);
       const vy = 1.0 + Math.random() * 2.8;
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: true });
-      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      const { mesh, mat } = this._acquireParticle(color, 0.5);
       mesh.position.set(x, y + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2);
+      mesh.castShadow = false;
       mesh.scale.setScalar(0.65);
-      this.fxGroup.add(mesh);
 
       this.particles.push({
         x: mesh.position.x,
@@ -2927,6 +3280,7 @@ class PaperclipPlayer {
         rotSpeed: (Math.random() - 0.5) * 18,
         life: 0.18 + Math.random() * 0.14,
         maxLife: 0.32,
+        baseScale: 0.65,
         mesh,
         mat,
       });
@@ -2949,16 +3303,10 @@ class PaperclipPlayer {
       const y1 = this.y + py * side - uy * back;
       const maxLife = isDashing ? 0.18 : 0.13;
 
-      const mat = new THREE.MeshBasicMaterial({
-        color: isDashing ? 0x2563eb : 0x182230,
-        transparent: true,
-        opacity: 0.85,
-      });
-      const mesh = new THREE.Mesh(this.lineGeo, mat);
+      const { mesh, mat } = this._acquireSpeedLine(isDashing);
       mesh.position.set(x1 - (ux * len) / 2, y1 - (uy * len) / 2, (Math.random() - 0.5) * 0.25);
       mesh.scale.set(len, 1, 1);
       mesh.rotation.z = Math.atan2(uy, ux);
-      this.fxGroup.add(mesh);
 
       this.speedLines.push({
         life: maxLife,
@@ -2974,8 +3322,8 @@ class PaperclipPlayer {
       const p = this.particles[i];
       p.life -= dt;
       if (p.life <= 0) {
-        this.fxGroup.remove(p.mesh);
-        p.mat.dispose();
+        p.mesh.visible = false;
+        this.particlePool.push({ mesh: p.mesh, mat: p.mat });
         this.particles.splice(i, 1);
         continue;
       }
@@ -2987,7 +3335,7 @@ class PaperclipPlayer {
       const alpha = Math.max(0, p.life / p.maxLife);
       p.mesh.position.set(p.x, p.y, p.z);
       p.mesh.rotation.set(p.rot, p.rot * 0.7, p.rot);
-      p.mesh.scale.setScalar(0.4 + 0.6 * alpha);
+      p.mesh.scale.setScalar((p.baseScale || 1) * (0.4 + 0.6 * alpha));
       p.mat.opacity = alpha;
     }
 
@@ -2995,8 +3343,8 @@ class PaperclipPlayer {
       const sl = this.speedLines[i];
       sl.life -= dt;
       if (sl.life <= 0) {
-        this.fxGroup.remove(sl.mesh);
-        sl.mat.dispose();
+        sl.mesh.visible = false;
+        this.speedLinePool.push({ mesh: sl.mesh, mat: sl.mat });
         this.speedLines.splice(i, 1);
       } else {
         sl.mat.opacity = Math.max(0, sl.life / sl.maxLife) * 0.85;
@@ -3012,8 +3360,21 @@ class PaperclipPlayer {
       if (this.respawnTimer <= 0) {
         this.spawn(this.spawnPos);
       }
-      return { reachedGoal: false, starsCollectedNow: 0, died: false };
+      return {
+        reachedGoal: false,
+        starsCollectedNow: 0,
+        died: false,
+        bounced: false,
+        dashed: false,
+        checkpointActivated: false,
+        crumbleTriggered: false,
+      };
     }
+
+    let bounced = false;
+    let dashed = false;
+    let checkpointActivated = false;
+    let crumbleTriggered = false;
 
     const moveSpeed = 8.4;
     const groundAccel = 65;
@@ -3065,6 +3426,7 @@ class PaperclipPlayer {
       this.spinAngle = Math.PI * 2 * -this.facing;
       this.scaleX = 1.35;
       this.scaleY = 0.72;
+      dashed = true;
       sound.playDash();
       this._spawnParticles(this.x, this.y, 10, '#67e8f9', 5.5);
     }
@@ -3132,6 +3494,25 @@ class PaperclipPlayer {
       this.vy *= Math.pow(0.45, dt * 12);
     }
 
+    // Magnetic field assist & dash recharge (Kapitel 3)
+    if (world.magnets) {
+      for (const m of world.magnets) {
+        if (Math.hypot(this.x - m.x, this.y - m.y) < m.radius) {
+          if (!this.onGround && this.dashTimer <= 0) {
+            const dx = m.x - this.x;
+            const dy = m.y - 0.4 - this.y;
+            this.vx += dx * 4.5 * dt;
+            this.vy = Math.min(11, this.vy + (22 + Math.max(0, dy * 6)) * dt);
+          }
+          if (!this.canDash) {
+            this.canDash = true;
+            sound.playMagnet();
+            this._spawnParticles(this.x, this.y, 6, '#38bdf8', 3.5);
+          }
+        }
+      }
+    }
+
     // Carry player with moving platform before physics step
     if (this.onGround && this.groundPlatform) {
       this.x += this.groundPlatform.x - this.groundPlatform.prevX;
@@ -3156,6 +3537,7 @@ class PaperclipPlayer {
 
     for (const p of world.platforms) {
       if (p.crumbleState === 'fallen') continue;
+      if (Math.abs(p.x - this.x) > p.w * 0.5 + 2.5) continue;
       if (this._overlaps(this.x, this.y, this.halfW, this.halfH, p.x, p.y, p.w / 2, p.h / 2)) {
         const cameFromLeft = prevX + this.halfW <= p.x - p.w / 2 + 0.08;
         const cameFromRight = prevX - this.halfW >= p.x + p.w / 2 - 0.08;
@@ -3184,6 +3566,7 @@ class PaperclipPlayer {
 
     for (const p of world.platforms) {
       if (p.crumbleState === 'fallen') continue;
+      if (Math.abs(p.x - this.x) > p.w * 0.5 + 2.5) continue;
       if (this._overlaps(this.x, this.y, this.halfW, this.halfH, p.x, p.y, p.w / 2, p.h / 2)) {
         if (this.vy <= 0) {
           this.y = p.y + p.h / 2 + this.halfH;
@@ -3194,6 +3577,7 @@ class PaperclipPlayer {
             p.bounceAnim = 1.0;
             this.scaleX = 0.68;
             this.scaleY = 1.45;
+            bounced = true;
             sound.playBounce();
             this._spawnParticles(this.x, this.y - this.halfH, 10, '#93c5fd', 5.0);
           } else {
@@ -3209,6 +3593,7 @@ class PaperclipPlayer {
             if (p.crumble && p.crumbleState === 'solid') {
               p.crumbleState = 'shaking';
               p.crumbleTimer = 0.55;
+              crumbleTriggered = true;
             }
           }
         } else if (prevY + this.halfH <= p.y - p.h / 2 + 0.14) {
@@ -3219,15 +3604,32 @@ class PaperclipPlayer {
     }
 
     for (const h of world.hazards) {
+      if (Math.abs(h.x - this.x) > h.w * 0.5 + 2.0) continue;
       if (this._overlaps(this.x, this.y, this.halfW * 0.85, this.halfH * 0.85, h.x, h.y, h.w / 2, h.h / 2)) {
         this._die();
-        return { reachedGoal: false, starsCollectedNow: 0, died: true };
+        return {
+          reachedGoal: false,
+          starsCollectedNow: 0,
+          died: true,
+          bounced,
+          dashed,
+          checkpointActivated,
+          crumbleTriggered,
+        };
       }
     }
 
     if (this.y < -7.2) {
       this._die();
-      return { reachedGoal: false, starsCollectedNow: 0, died: true };
+      return {
+        reachedGoal: false,
+        starsCollectedNow: 0,
+        died: true,
+        bounced,
+        dashed,
+        checkpointActivated,
+        crumbleTriggered,
+      };
     }
 
     let starsCollectedNow = 0;
@@ -3243,6 +3645,7 @@ class PaperclipPlayer {
     for (const cp of world.checkpoints) {
       if (!cp.activated && Math.hypot(this.x - cp.x, this.y - cp.y) < 1.5) {
         cp.activated = true;
+        checkpointActivated = true;
         this.spawnPos = { x: cp.x, y: cp.y + 0.4 };
         sound.playCheckpoint();
         this._spawnParticles(cp.x, cp.y + 0.4, 10, '#38bdf8', 4.5);
@@ -3273,7 +3676,15 @@ class PaperclipPlayer {
       this.blinkTimer = 2.2 + Math.random() * 2.5;
     }
 
-    return { reachedGoal, starsCollectedNow, died: false };
+    return {
+      reachedGoal,
+      starsCollectedNow,
+      died: false,
+      bounced,
+      dashed,
+      checkpointActivated,
+      crumbleTriggered,
+    };
   }
 
   _die() {
@@ -3287,9 +3698,28 @@ class PaperclipPlayer {
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
   }
 
+  updateGhost(ghostPose, dimensionMix = 1) {
+    if (!this.ghostGroup) return;
+    if (!ghostPose) {
+      this.ghostGroup.visible = false;
+      return;
+    }
+    this.ghostGroup.visible = true;
+    this.ghostGroup.position.set(ghostPose.x, ghostPose.y, -0.04);
+    this.ghostGroup.rotation.y = (ghostPose.facing || 1) * 0.18 * dimensionMix;
+    this.ghostGroup.scale.set(1, 1, 0.15 + 0.85 * dimensionMix);
+  }
+
   syncVisuals(time = 0, dimensionMix = 1) {
-    this.group.visible = !this.dead;
-    if (this.dead) return;
+    this.group.visible = true;
+    if (this.dead) {
+      const t = Math.max(0, Math.min(1, 1 - this.respawnTimer / 0.45));
+      this.group.position.set(this.x, this.y + Math.sin(t * Math.PI) * 0.65, 0.2);
+      this.group.rotation.z += 0.35;
+      const s = Math.max(0.01, 1 - t);
+      this.group.scale.set(s * (dimensionMix < 0.35 ? this.facing : 1), s, s);
+      return;
+    }
 
     this.group.position.set(this.x, this.y, 0.02);
     const lean = -this.vx * 0.025;
@@ -3308,7 +3738,6 @@ class PaperclipPlayer {
       const tex = getPlayer2DTexture(this.canDash, boilFrame);
       if (this.sprite2DMat.map !== tex) {
         this.sprite2DMat.map = tex;
-        this.sprite2DMat.needsUpdate = true;
       }
       return;
     }
@@ -3378,12 +3807,14 @@ const levelNameEl = document.getElementById('level-name');
 const starCountEl = document.getElementById('star-count');
 const progressPctEl = document.getElementById('progress-pct');
 const runTimerEl = document.getElementById('run-timer');
+const chapterBannerEl = document.getElementById('chapter-banner');
 const startOverlay = document.getElementById('start-overlay');
 const pauseOverlay = document.getElementById('pause-overlay');
 const winOverlay = document.getElementById('win-overlay');
 const winStatsEl = document.getElementById('win-stats');
 const winBestEl = document.getElementById('win-best');
 const btnStart = document.getElementById('btn-start');
+const btnResumeSaved = document.getElementById('btn-resume-saved');
 const btnPlayAgain = document.getElementById('btn-play-again');
 const btnPause = document.getElementById('btn-pause');
 const btnResume = document.getElementById('btn-resume');
@@ -3397,6 +3828,7 @@ const rotateHint = document.getElementById('rotate-hint');
 const btnDismissRotate = document.getElementById('btn-dismiss-rotate');
 const btnClearCacheStart = document.getElementById('btn-clear-cache-start');
 const btnClearCachePause = document.getElementById('btn-clear-cache-pause');
+const chapterButtons = document.querySelectorAll('.chapter-btn');
 
 async function clearAppCache() {
   try {
@@ -3418,6 +3850,9 @@ async function clearAppCache() {
 
 const BEST_TIME_KEY = 'gemmets_resa_best_time';
 const BEST_STARS_KEY = 'gemmets_resa_best_stars';
+const SAVE_STATE_KEY = 'gemmets_resa_save_state';
+const CHAPTER_STARS_KEY = 'gemmets_resa_chapter_stars';
+const GHOST_KEY = 'gemmets_resa_best_ghost';
 
 function resizeCanvas() {
   const w = window.innerWidth;
@@ -3437,6 +3872,7 @@ const player = new PaperclipPlayer(scene);
 // Camera state in world coordinates
 let camX = 4;
 let camY = -1;
+let cameraTrauma = 0;
 
 // Game state
 let starsCollected = 0;
@@ -3447,6 +3883,141 @@ let dimensionMix = 0;
 let gameStarted = false;
 let gameWon = false;
 let paused = false;
+let currentChapterIdx = 0;
+let isFullRun = true;
+
+// Ghost replay state
+let ghostSamples = [];
+let ghostSampleTimer = 0;
+let activeGhost = null;
+
+// Chapter banner timers
+let bannerFadeTimer = null;
+let bannerHideTimer = null;
+
+function getChapterIndexForX(x) {
+  if (x >= 900) return 3;
+  if (x >= 600) return 2;
+  if (x >= 300) return 1;
+  return 0;
+}
+
+function showBanner(text, duration = 2.6) {
+  if (!chapterBannerEl) return;
+  if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
+  if (bannerHideTimer) clearTimeout(bannerHideTimer);
+
+  chapterBannerEl.textContent = text;
+  chapterBannerEl.classList.remove('hidden', 'fade-out');
+
+  bannerFadeTimer = setTimeout(() => {
+    chapterBannerEl.classList.add('fade-out');
+  }, Math.max(200, (duration - 0.25) * 1000));
+
+  bannerHideTimer = setTimeout(() => {
+    chapterBannerEl.classList.add('hidden');
+    chapterBannerEl.classList.remove('fade-out');
+  }, duration * 1000);
+}
+
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonStorage(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+function loadChapterStars() {
+  const arr = readJsonStorage(CHAPTER_STARS_KEY, [0, 0, 0, 0]);
+  return Array.isArray(arr) && arr.length === 4 ? arr : [0, 0, 0, 0];
+}
+
+function updateChapterStarsProgress() {
+  const counts = [0, 0, 0, 0];
+  for (const s of world.stars) {
+    if (s.collected) {
+      counts[getChapterIndexForX(s.x)] += 1;
+    }
+  }
+  const best = loadChapterStars();
+  let changed = false;
+  for (let i = 0; i < 4; i++) {
+    if (counts[i] > best[i]) {
+      best[i] = counts[i];
+      changed = true;
+    }
+  }
+  if (changed) {
+    writeJsonStorage(CHAPTER_STARS_KEY, best);
+    refreshChapterUI();
+  }
+}
+
+function refreshChapterUI() {
+  const best = loadChapterStars();
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById(`ch-stars-${i}`);
+    if (el) el.textContent = `★ ${best[i] || 0}/12`;
+  }
+}
+
+function saveMidRunState() {
+  if (!gameStarted || gameWon) return;
+  const activeCheckpoints = [];
+  world.checkpoints.forEach((cp, idx) => {
+    if (cp.activated) activeCheckpoints.push(idx);
+  });
+  const collectedStarIndices = [];
+  world.stars.forEach((s, idx) => {
+    if (s.collected) collectedStarIndices.push(idx);
+  });
+  writeJsonStorage(SAVE_STATE_KEY, {
+    spawnPos: player.spawnPos,
+    activeCheckpoints,
+    collectedStarIndices,
+    runTime,
+    deaths,
+    isFullRun,
+  });
+}
+
+function clearSavedRun() {
+  try {
+    localStorage.removeItem(SAVE_STATE_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+  if (btnResumeSaved) btnResumeSaved.classList.add('hidden');
+}
+
+function refreshResumeButton() {
+  if (!btnResumeSaved) return;
+  const save = readJsonStorage(SAVE_STATE_KEY, null);
+  if (save && save.spawnPos && typeof save.spawnPos.x === 'number') {
+    const pct = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(((save.spawnPos.x - WORLD_DATA.spawn.x) / (WORLD_DATA.goal.x - WORLD_DATA.spawn.x)) * 100)
+      )
+    );
+    const chNum = getChapterIndexForX(save.spawnPos.x) + 1;
+    btnResumeSaved.textContent = `Fortsätt (Kap. ${chNum} • ${pct}%)`;
+    btnResumeSaved.classList.remove('hidden');
+  } else {
+    btnResumeSaved.classList.add('hidden');
+  }
+}
 
 function computeTargetDimension() {
   if (player.dead) return 0;
@@ -3475,9 +4046,81 @@ function computeTargetDimension() {
 
 // Input state
 const keys = new Set();
-const touchState = { left: false, right: false, jumpHeld: false };
+const touchState = { left: false, right: false, up: false, jumpHeld: false, dashUp: false };
 let jumpJustPressed = false;
 let dashJustPressed = false;
+
+// Gamepad state & haptics
+const padPrev = { jump: false, dash: false, pause: false, checkpoint: false };
+
+function pollGamepad() {
+  const result = { left: false, right: false, up: false, jumpHeld: false };
+  if (!navigator.getGamepads) return result;
+
+  const pads = navigator.getGamepads();
+  let gp = null;
+  for (const p of pads) {
+    if (p && p.connected) {
+      gp = p;
+      break;
+    }
+  }
+  if (!gp) {
+    padPrev.jump = false;
+    padPrev.dash = false;
+    padPrev.pause = false;
+    padPrev.checkpoint = false;
+    return result;
+  }
+
+  const ax = gp.axes[0] || 0;
+  const ay = gp.axes[1] || 0;
+  result.left = ax < -0.35 || Boolean(gp.buttons[14]?.pressed);
+  result.right = ax > 0.35 || Boolean(gp.buttons[15]?.pressed);
+  result.up = ay < -0.45 || Boolean(gp.buttons[12]?.pressed);
+  result.jumpHeld = Boolean(gp.buttons[0]?.pressed || gp.buttons[1]?.pressed);
+
+  const dashHeld = Boolean(gp.buttons[2]?.pressed || gp.buttons[5]?.pressed || gp.buttons[7]?.pressed);
+  const pauseHeld = Boolean(gp.buttons[9]?.pressed);
+  const checkpointHeld = Boolean(gp.buttons[8]?.pressed || gp.buttons[3]?.pressed);
+
+  if (result.jumpHeld && !padPrev.jump) jumpJustPressed = true;
+  if (dashHeld && !padPrev.dash) dashJustPressed = true;
+  if (pauseHeld && !padPrev.pause) togglePause();
+  if (checkpointHeld && !padPrev.checkpoint && gameStarted && !gameWon) respawnAtCheckpoint();
+
+  padPrev.jump = result.jumpHeld;
+  padPrev.dash = dashHeld;
+  padPrev.pause = pauseHeld;
+  padPrev.checkpoint = checkpointHeld;
+  return result;
+}
+
+function triggerHaptic(ms, weak = 0.3, strong = 0.5) {
+  try {
+    if (navigator.getGamepads) {
+      const pads = navigator.getGamepads();
+      for (const gp of pads) {
+        if (gp && gp.connected && gp.vibrationActuator && gp.vibrationActuator.playEffect) {
+          gp.vibrationActuator
+            .playEffect('dual-rumble', {
+              startDelay: 0,
+              duration: ms,
+              weakMagnitude: weak,
+              strongMagnitude: strong,
+            })
+            .catch(() => {});
+          return;
+        }
+      }
+    }
+    if (isMobile && navigator.vibrate) {
+      navigator.vibrate(ms);
+    }
+  } catch {
+    // Ignore unsupported haptic hardware
+  }
+}
 
 function formatTime(sec) {
   const total = Math.max(0, Math.floor(sec));
@@ -3539,29 +4182,34 @@ window.addEventListener('keyup', (e) => {
   keys.delete(e.code);
 });
 
-// Touch controls binding (thumb-slide D-pad + jump/dash buttons)
+// Touch controls binding (thumb-slide 2D D-pad + jump/dash buttons)
 const touchDpad = document.getElementById('touch-dpad');
 const touchLeftBtn = document.getElementById('touch-left');
 const touchRightBtn = document.getElementById('touch-right');
 let dpadPointerId = null;
 
-function updateDpadFromPoint(clientX) {
+function updateDpadFromPoint(clientX, clientY) {
   if (!touchDpad) return;
   const rect = touchDpad.getBoundingClientRect();
   const midX = rect.left + rect.width / 2;
   const goLeft = clientX < midX;
+  const goUp = clientY < rect.top + rect.height * 0.38;
   touchState.left = goLeft;
   touchState.right = !goLeft;
+  touchState.up = goUp;
   if (touchLeftBtn) touchLeftBtn.classList.toggle('active', goLeft);
   if (touchRightBtn) touchRightBtn.classList.toggle('active', !goLeft);
+  touchDpad.classList.toggle('up-active', goUp);
 }
 
 function clearDpad() {
   dpadPointerId = null;
   touchState.left = false;
   touchState.right = false;
+  touchState.up = false;
   if (touchLeftBtn) touchLeftBtn.classList.remove('active');
   if (touchRightBtn) touchRightBtn.classList.remove('active');
+  if (touchDpad) touchDpad.classList.remove('up-active');
 }
 
 if (touchDpad) {
@@ -3575,12 +4223,12 @@ if (touchDpad) {
         // Ignore if capture is unavailable
       }
     }
-    updateDpadFromPoint(e.clientX);
+    updateDpadFromPoint(e.clientX, e.clientY);
   });
   touchDpad.addEventListener('pointermove', (e) => {
     if (e.pointerId !== dpadPointerId) return;
     e.preventDefault();
-    updateDpadFromPoint(e.clientX);
+    updateDpadFromPoint(e.clientX, e.clientY);
   });
   touchDpad.addEventListener('pointerup', (e) => {
     if (e.pointerId === dpadPointerId) clearDpad();
@@ -3612,22 +4260,43 @@ function bindTouchHold(el, keyName) {
 bindTouchHold(document.getElementById('touch-jump'), 'jumpHeld');
 
 const touchDashBtn = document.getElementById('touch-dash');
+let dashPointerId = null;
+let dashStartY = 0;
 if (touchDashBtn) {
   touchDashBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    dashPointerId = e.pointerId;
+    dashStartY = e.clientY;
+    const rect = touchDashBtn.getBoundingClientRect();
+    touchState.dashUp = touchState.jumpHeld || e.clientY < rect.top + rect.height * 0.45;
     dashJustPressed = true;
     touchDashBtn.classList.add('active');
   });
-  const clearDash = () => touchDashBtn.classList.remove('active');
+  touchDashBtn.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== dashPointerId) return;
+    if (e.clientY < dashStartY - 12) {
+      touchState.dashUp = true;
+    }
+  });
+  const clearDash = (e) => {
+    if (e.pointerId === dashPointerId || e.type === 'pointercancel') {
+      dashPointerId = null;
+      touchDashBtn.classList.remove('active');
+    }
+  };
   touchDashBtn.addEventListener('pointerup', clearDash);
   touchDashBtn.addEventListener('pointercancel', clearDash);
 }
 
-function toggleMute() {
-  const muted = sound.toggleMute();
-  const label = muted ? '🔇 Tyst' : '🔊 Ljud';
+function syncMuteLabels() {
+  const label = sound.muted ? '🔇 Tyst' : '🔊 Ljud';
   btnMute.textContent = label;
   if (btnMutePause) btnMutePause.textContent = label;
+}
+
+function toggleMute() {
+  sound.toggleMute();
+  syncMuteLabels();
 }
 
 function tryLockLandscape() {
@@ -3671,20 +4340,82 @@ function updateHUD() {
   runTimerEl.textContent = formatTime(runTime);
 }
 
-function resetWorld() {
+function resetWorld({ clearSave = true } = {}) {
   starsCollected = 0;
   deaths = 0;
   runTime = 0;
   worldTime = 0;
   dimensionMix = 0;
+  cameraTrauma = 0;
+  currentChapterIdx = 0;
+  isFullRun = true;
+  ghostSamples = [];
+  ghostSampleTimer = 0;
+  activeGhost = readJsonStorage(GHOST_KEY, null);
   gameWon = false;
   paused = false;
   pauseOverlay.classList.add('hidden');
   btnPause.textContent = '⏸ Meny';
   world.loadWorld(WORLD_DATA);
   player.spawn(WORLD_DATA.spawn);
+  player.updateGhost(null);
   camX = player.x + 2.5;
   camY = -0.8;
+  if (clearSave) clearSavedRun();
+  updateHUD();
+}
+
+function startChapter(chapterIdx) {
+  resetWorld({ clearSave: true });
+  isFullRun = chapterIdx === 0;
+  currentChapterIdx = chapterIdx;
+
+  let spawnPos = { ...WORLD_DATA.spawn };
+  if (chapterIdx > 0) {
+    const startX = chapterIdx * 300;
+    const cpIdx = world.checkpoints.findIndex((cp) => Math.abs(cp.x - startX) < 1);
+    if (cpIdx >= 0) {
+      world.checkpoints[cpIdx].activated = true;
+      spawnPos = { x: world.checkpoints[cpIdx].x, y: world.checkpoints[cpIdx].y + 0.4 };
+    } else {
+      spawnPos = { x: startX, y: -1.0 };
+    }
+  }
+
+  player.spawn(spawnPos);
+  dimensionMix = computeTargetDimension();
+  camX = player.x + 2.5;
+  camY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
+  updateHUD();
+  showBanner(WORLD_DATA.sections[chapterIdx].name, 2.6);
+}
+
+function resumeSavedRun() {
+  const save = readJsonStorage(SAVE_STATE_KEY, null);
+  if (!save || !save.spawnPos) {
+    resetWorld({ clearSave: true });
+    return;
+  }
+  resetWorld({ clearSave: false });
+  if (Array.isArray(save.activeCheckpoints)) {
+    for (const idx of save.activeCheckpoints) {
+      if (world.checkpoints[idx]) world.checkpoints[idx].activated = true;
+    }
+  }
+  if (Array.isArray(save.collectedStarIndices)) {
+    for (const idx of save.collectedStarIndices) {
+      if (world.stars[idx]) world.stars[idx].collected = true;
+    }
+    starsCollected = save.collectedStarIndices.length;
+  }
+  runTime = Number(save.runTime) || 0;
+  deaths = Number(save.deaths) || 0;
+  isFullRun = false; // Mid-session reload cannot safely overwrite full-run ghost
+  player.spawn(save.spawnPos);
+  currentChapterIdx = getChapterIndexForX(player.x);
+  dimensionMix = computeTargetDimension();
+  camX = player.x + 2.5;
+  camY = Math.max(-1.6, Math.min(2.2, player.y * 0.4));
   updateHUD();
 }
 
@@ -3692,49 +4423,88 @@ function triggerVictory() {
   if (gameWon) return;
   gameWon = true;
   sound.playPageFlip();
+  updateChapterStarsProgress();
+  clearSavedRun();
 
   let bestTime = Number(localStorage.getItem(BEST_TIME_KEY) || Infinity);
   let bestStars = Number(localStorage.getItem(BEST_STARS_KEY) || 0);
-  if (runTime < bestTime) {
+  if (isFullRun && runTime < bestTime) {
     bestTime = runTime;
     localStorage.setItem(BEST_TIME_KEY, bestTime.toFixed(1));
+    if (ghostSamples.length > 2) {
+      writeJsonStorage(GHOST_KEY, ghostSamples);
+    }
   }
   if (starsCollected > bestStars) {
     bestStars = starsCollected;
     localStorage.setItem(BEST_STARS_KEY, String(bestStars));
   }
 
-  winStatsEl.textContent = `Du samlade ${starsCollected} av ${WORLD_DATA.stars.length} stjärnor på ${formatTime(runTime)} (${deaths} omstarter)!`;
-  winBestEl.textContent = `Personbästa: ${formatTime(bestTime)} • Flest stjärnor: ${bestStars} / ${WORLD_DATA.stars.length}`;
+  const modeNote = isFullRun ? '' : ' (Kapitelträning)';
+  winStatsEl.textContent = `Du samlade ${starsCollected} av ${WORLD_DATA.stars.length} stjärnor på ${formatTime(runTime)} (${deaths} omstarter)${modeNote}!`;
+  const bestTimeLabel = Number.isFinite(bestTime) ? formatTime(bestTime) : '—';
+  winBestEl.textContent = `Personbästa (hel bok): ${bestTimeLabel} • Flest stjärnor: ${bestStars} / ${WORLD_DATA.stars.length}`;
   winOverlay.classList.remove('hidden');
 }
 
-resetWorld();
+syncMuteLabels();
+refreshChapterUI();
+refreshResumeButton();
+resetWorld({ clearSave: false });
 
 btnStart.addEventListener('click', () => {
   sound.init();
   sound.playPageFlip();
+  resetWorld({ clearSave: true });
   startOverlay.classList.add('hidden');
   hud.classList.remove('hidden');
   gameStarted = true;
+  showBanner(WORLD_DATA.sections[0].name, 2.4);
   if (isMobile) tryLockLandscape();
+});
+
+if (btnResumeSaved) {
+  btnResumeSaved.addEventListener('click', () => {
+    sound.init();
+    sound.playPageFlip();
+    resumeSavedRun();
+    startOverlay.classList.add('hidden');
+    hud.classList.remove('hidden');
+    gameStarted = true;
+    showBanner(`Fortsätter • ${WORLD_DATA.sections[currentChapterIdx].name}`, 2.4);
+    if (isMobile) tryLockLandscape();
+  });
+}
+
+chapterButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const idx = Number(btn.dataset.chapter || 0);
+    sound.init();
+    sound.playPageFlip();
+    startChapter(idx);
+    startOverlay.classList.add('hidden');
+    hud.classList.remove('hidden');
+    gameStarted = true;
+    if (isMobile) tryLockLandscape();
+  });
 });
 
 btnPlayAgain.addEventListener('click', () => {
   sound.init();
   sound.playPageFlip();
   winOverlay.classList.add('hidden');
-  resetWorld();
+  resetWorld({ clearSave: true });
   gameStarted = true;
+  showBanner(WORLD_DATA.sections[0].name, 2.4);
 });
 
 btnPause.addEventListener('click', togglePause);
 btnResume.addEventListener('click', () => setPaused(false));
 btnCheckpoint.addEventListener('click', respawnAtCheckpoint);
-btnFullRestart.addEventListener('click', resetWorld);
+btnFullRestart.addEventListener('click', () => resetWorld({ clearSave: true }));
 btnRestart.addEventListener('click', () => {
   if (gameStarted && !gameWon) {
-    resetWorld();
+    resetWorld({ clearSave: true });
   }
 });
 btnMute.addEventListener('click', toggleMute);
@@ -3746,6 +4516,21 @@ if (btnDismissRotate && rotateHint) {
 if (btnClearCacheStart) btnClearCacheStart.addEventListener('click', clearAppCache);
 if (btnClearCachePause) btnClearCachePause.addEventListener('click', clearAppCache);
 
+function sampleGhostPose(t) {
+  if (!Array.isArray(activeGhost) || activeGhost.length < 2) return null;
+  const fIdx = t / 0.1;
+  const i0 = Math.floor(fIdx);
+  if (i0 < 0 || i0 >= activeGhost.length - 1) return null;
+  const s0 = activeGhost[i0];
+  const s1 = activeGhost[i0 + 1];
+  const alpha = fIdx - i0;
+  return {
+    x: s0[0] + (s1[0] - s0[0]) * alpha,
+    y: s0[1] + (s1[1] - s0[1]) * alpha,
+    facing: s0[2] || 1,
+  };
+}
+
 // Main loop
 let lastTime = performance.now();
 
@@ -3754,42 +4539,98 @@ function animate(now) {
   const dt = Math.min(0.033, (now - lastTime) / 1000);
   lastTime = now;
 
+  const padState = pollGamepad();
+
   if (!paused) {
     worldTime += dt;
     const targetDim = computeTargetDimension();
     const dimSpeed = player.dead ? 10 : 3.2;
     dimensionMix += (targetDim - dimensionMix) * Math.min(1, dt * dimSpeed);
-    world.update(worldTime, dt, dimensionMix);
+    world.update(worldTime, dt, dimensionMix, camX);
   }
 
   if (gameStarted && !gameWon && !paused) {
     runTime += dt;
     const input = {
-      left: keys.has('KeyA') || keys.has('ArrowLeft') || touchState.left,
-      right: keys.has('KeyD') || keys.has('ArrowRight') || touchState.right,
-      up: keys.has('KeyW') || keys.has('ArrowUp'),
+      left: keys.has('KeyA') || keys.has('ArrowLeft') || touchState.left || padState.left,
+      right: keys.has('KeyD') || keys.has('ArrowRight') || touchState.right || padState.right,
+      up: keys.has('KeyW') || keys.has('ArrowUp') || touchState.up || touchState.dashUp || padState.up,
       jumpPressed: jumpJustPressed,
-      jumpHeld: keys.has('Space') || keys.has('KeyW') || keys.has('ArrowUp') || touchState.jumpHeld,
+      jumpHeld:
+        keys.has('Space') ||
+        keys.has('KeyW') ||
+        keys.has('ArrowUp') ||
+        touchState.jumpHeld ||
+        padState.jumpHeld,
       dashPressed: dashJustPressed,
     };
 
     const result = player.update(dt, input, world);
     if (result.starsCollectedNow > 0) {
       starsCollected += result.starsCollectedNow;
+      updateChapterStarsProgress();
+      saveMidRunState();
+    }
+    if (result.checkpointActivated) {
+      showBanner('⚑ Checkpoint sparad!', 1.8);
+      saveMidRunState();
     }
     if (result.died) {
       deaths += 1;
+      cameraTrauma = Math.min(1, cameraTrauma + 0.6);
+      triggerHaptic(180, 0.5, 0.8);
     }
+    if (result.bounced) {
+      cameraTrauma = Math.min(1, cameraTrauma + 0.22);
+      triggerHaptic(60, 0.35, 0.2);
+    }
+    if (result.dashed) {
+      cameraTrauma = Math.min(1, cameraTrauma + 0.16);
+      triggerHaptic(45, 0.25, 0.15);
+    }
+    if (result.crumbleTriggered) {
+      cameraTrauma = Math.min(1, cameraTrauma + 0.14);
+    }
+
+    const nextChapterIdx = getChapterIndexForX(player.x);
+    if (nextChapterIdx !== currentChapterIdx) {
+      if (nextChapterIdx > currentChapterIdx) {
+        sound.playPageFlip();
+        showBanner(WORLD_DATA.sections[nextChapterIdx].name, 2.6);
+      }
+      currentChapterIdx = nextChapterIdx;
+    }
+
+    if (isFullRun && !player.dead && ghostSamples.length < 12000) {
+      ghostSampleTimer += dt;
+      if (ghostSampleTimer >= 0.1) {
+        ghostSampleTimer -= 0.1;
+        ghostSamples.push([
+          Math.round(player.x * 100) / 100,
+          Math.round(player.y * 100) / 100,
+          player.facing,
+        ]);
+      }
+    }
+
+    player.updateGhost(isFullRun ? sampleGhostPose(runTime) : null, dimensionMix);
     updateHUD();
     if (result.reachedGoal) {
       triggerVictory();
     }
   } else if (!paused) {
     player.updateParticles(dt);
+    player.updateGhost(null, dimensionMix);
   }
 
   jumpJustPressed = false;
   dashJustPressed = false;
+  touchState.dashUp = false;
+
+  cameraTrauma = Math.max(0, cameraTrauma - dt * 2.4);
+  const shakeMag = cameraTrauma * cameraTrauma * 0.32;
+  const shakeX = shakeMag > 0.001 ? Math.sin(worldTime * 57) * shakeMag : 0;
+  const shakeY = shakeMag > 0.001 ? Math.cos(worldTime * 49) * shakeMag : 0;
 
   // Smooth 2.5D dolly-zoom camera: constant visible height (11.36 units at z = 0)
   // On narrow portrait screens, pull back slightly so horizontal lookahead remains playable
@@ -3811,8 +4652,12 @@ function animate(now) {
   camX += (targetCamX - camX) * Math.min(1, dt * 5.2);
   camY += (targetCamY - camY) * Math.min(1, dt * 4.2);
 
-  camera.position.set(camX, camY + 0.35 * dimensionMix, camZ);
-  camera.lookAt(camX + player.facing * 0.35 * dimensionMix, camY, 0);
+  camera.position.set(camX + shakeX, camY + 0.35 * dimensionMix + shakeY, camZ);
+  camera.lookAt(
+    camX + player.facing * 0.35 * dimensionMix + shakeX * 0.4,
+    camY + shakeY * 0.4,
+    0
+  );
 
   // Dynamic 2D flat lighting -> 3D desk-lamp shadows
   ambientLight.intensity = 2.8 - 1.2 * dimensionMix;

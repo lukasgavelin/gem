@@ -75,7 +75,7 @@ export const WORLD_DATA = {
       x: 602.5,
       y: 1.7,
       text: 'KAPITEL 3: NO & LABB',
-      subtext: 'HALA GLASBLOCK & LABBFJÄDRAR',
+      subtext: 'HALA GLASBLOCK, FJÄDRAR & MAGNETER',
       tilt: 0.02,
     },
     {
@@ -425,5 +425,12 @@ export const WORLD_DATA = {
     { x: 1112.4, y: 3.4 },
     { x: 1133.0, y: 3.0 },
     { x: 1163.8, y: 5.0 },
+  ],
+  magnets: [
+    { x: 642.2, y: 2.9, radius: 3.2 },
+    { x: 691.2, y: 1.6, radius: 3.2 },
+    { x: 745.8, y: 3.1, radius: 3.2 },
+    { x: 819.2, y: 3.6, radius: 3.2 },
+    { x: 870.8, y: 2.8, radius: 3.2 },
   ],
 };

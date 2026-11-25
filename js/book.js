@@ -18,15 +18,32 @@ export class BookWorld {
     this.hazards = [];
     this.stars = [];
     this.checkpoints = [];
+    this.magnets = [];
     this.zLayers = [];
     this.goal = null;
     this.maxX = 1212;
     this.motesPoints = null;
+    this.moteBaseX = [];
     this.moteBaseY = [];
     this.motePhases = [];
   }
 
   _clearGroup() {
+    const geometries = new Set();
+    const materials = new Set();
+    this.group.traverse((obj) => {
+      if (obj.geometry) geometries.add(obj.geometry);
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          for (const m of obj.material) materials.add(m);
+        } else {
+          materials.add(obj.material);
+        }
+      }
+    });
+    for (const g of geometries) g.dispose();
+    for (const m of materials) m.dispose();
+
     while (this.group.children.length > 0) {
       const child = this.group.children.pop();
       this.group.remove(child);
@@ -111,6 +128,18 @@ export class BookWorld {
       bookblock: 0x60a5fa,
     };
 
+    const sideMatCache = new Map();
+    const getSideMat = (style) => {
+      if (sideMatCache.has(style)) return sideMatCache.get(style);
+      const mat = new THREE.MeshStandardMaterial({
+        color: sideMatMap[style] || 0xb8c7d9,
+        roughness: 0.85,
+      });
+      sideMatCache.set(style, mat);
+      return mat;
+    };
+    const ghostMat = new THREE.LineBasicMaterial({ color: 0x182230, transparent: true, opacity: 0.28 });
+
     this.platforms = worldData.platforms.map((p, idx) => {
       const depth = p.h > 2 ? 1.15 : 0.95;
       const geo = new THREE.BoxGeometry(p.w, p.h, depth);
@@ -120,10 +149,7 @@ export class BookWorld {
         roughness: p.slippery ? 0.25 : 0.82,
         metalness: p.slippery ? 0.08 : 0.02,
       });
-      const sideMat = new THREE.MeshStandardMaterial({
-        color: sideMatMap[p.style] || 0xb8c7d9,
-        roughness: 0.85,
-      });
+      const sideMat = getSideMat(p.style);
       // BoxGeometry faces: +x, -x, +y, -y, +z (front), -z (back)
       const mesh = new THREE.Mesh(geo, [sideMat, sideMat, frontMat, sideMat, frontMat, sideMat]);
       mesh.position.set(p.x, p.y, 0);
@@ -134,10 +160,7 @@ export class BookWorld {
 
       // Dashed wireframe outline for fallen crumble blocks
       const edgeGeo = new THREE.EdgesGeometry(geo);
-      const ghost = new THREE.LineSegments(
-        edgeGeo,
-        new THREE.LineBasicMaterial({ color: 0x182230, transparent: true, opacity: 0.28 })
-      );
+      const ghost = new THREE.LineSegments(edgeGeo, ghostMat);
       ghost.position.copy(mesh.position);
       ghost.rotation.copy(mesh.rotation);
       ghost.visible = false;
@@ -334,18 +357,70 @@ export class BookWorld {
 
     this.goal = { ...worldData.goal, radius: 1.0, seed: 2800, mesh: ribbonMesh };
 
-    // 10. 3D Floating Graphite Dust Motes
-    const moteCount = Math.max(240, Math.round(this.maxX * 0.42));
+    // 10. 3D Horseshoe Magnets (Kapitel 3: NO & Labb)
+    const archGeo = new THREE.TorusGeometry(0.42, 0.12, 10, 20, Math.PI);
+    const archMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4, metalness: 0.35 });
+    const poleGeo = new THREE.BoxGeometry(0.24, 0.28, 0.24);
+    const poleLeftMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35, metalness: 0.4 });
+    const poleRightMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.35, metalness: 0.4 });
+
+    this.magnets = (worldData.magnets || []).map((m, idx) => {
+      const radius = m.radius || 3.2;
+      const pull = m.pull || 26;
+      const mGroup = new THREE.Group();
+      mGroup.position.set(m.x, m.y, 0);
+
+      const arch = new THREE.Mesh(archGeo, archMat);
+      arch.castShadow = true;
+      mGroup.add(arch);
+
+      const leftPole = new THREE.Mesh(poleGeo, poleLeftMat);
+      leftPole.position.set(-0.42, -0.14, 0);
+      leftPole.castShadow = true;
+      const rightPole = new THREE.Mesh(poleGeo, poleRightMat);
+      rightPole.position.set(0.42, -0.14, 0);
+      rightPole.castShadow = true;
+      mGroup.add(leftPole, rightPole);
+
+      const ringGeo = new THREE.RingGeometry(0.6, radius, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.z = -0.12;
+      mGroup.add(ring);
+
+      this.group.add(mGroup);
+      return {
+        x: m.x,
+        y: m.y,
+        radius,
+        pull,
+        seed: 4200 + idx * 17.3,
+        group: mGroup,
+        ring,
+        ringMat,
+      };
+    });
+
+    // 11. 3D Floating Graphite Dust Motes (local window around camera)
+    const moteCount = 90;
     const positions = new Float32Array(moteCount * 3);
+    this.moteBaseX = [];
     this.moteBaseY = [];
     this.motePhases = [];
+    const windowSpan = 36;
     for (let i = 0; i < moteCount; i++) {
-      const x = Math.random() * (this.maxX + 10) - 5;
-      const y = (Math.random() - 0.5) * 12;
+      const x = (Math.random() - 0.5) * windowSpan;
+      const y = (Math.random() - 0.5) * 11;
       const z = (Math.random() - 0.5) * 2.8;
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
+      this.moteBaseX.push(x);
       this.moteBaseY.push(y);
       this.motePhases.push(Math.random() * Math.PI * 2);
     }
@@ -353,11 +428,12 @@ export class BookWorld {
     moteGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const moteMat = new THREE.PointsMaterial({
       color: 0x475569,
-      size: 0.075,
+      size: 0.08,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.38,
     });
     this.motesPoints = new THREE.Points(moteGeo, moteMat);
+    this.motesPoints.frustumCulled = false;
     this.group.add(this.motesPoints);
   }
 
@@ -392,7 +468,7 @@ export class BookWorld {
     }
   }
 
-  update(time, dt, dimensionMix = 1) {
+  update(time, dt, dimensionMix = 1, focusX = 0) {
     const boilFrame = Math.floor(time * BOIL_FPS) % 3;
     const zScale = 0.02 + 0.98 * dimensionMix;
 
@@ -431,6 +507,14 @@ export class BookWorld {
         }
       }
 
+      const distFromCam = Math.abs(p.x - focusX);
+      p.mesh.castShadow = distFromCam < 28;
+      if (distFromCam > 42) {
+        p.mesh.visible = false;
+        p.ghost.visible = false;
+        continue;
+      }
+
       // Sync 3D mesh state
       const isFallen = p.crumbleState === 'fallen';
       p.mesh.visible = !isFallen || (dimensionMix > 0.25 && p.fallAnim < 0.95);
@@ -455,7 +539,6 @@ export class BookWorld {
       const desiredTex = getPlatformTexture(p.style, boilFrame, p.crumbleState === 'shaking');
       if (p.frontMat.map !== desiredTex) {
         p.frontMat.map = desiredTex;
-        p.frontMat.needsUpdate = true;
       }
     }
 
@@ -470,6 +553,13 @@ export class BookWorld {
         cp.finialMat.color.setHex(0x0284c7);
         cp.flag.rotation.y = Math.sin(time * 6 + cp.x) * 0.24 * dimensionMix;
       }
+    }
+
+    for (const m of this.magnets) {
+      m.group.scale.set(1, 1, zScale);
+      const pulse = 0.94 + Math.sin(time * 4.0 + m.x) * 0.06;
+      m.ring.scale.setScalar(pulse);
+      m.ringMat.opacity = 0.07 + 0.05 * Math.sin(time * 4.0 + m.x);
     }
 
     for (const s of this.stars) {
@@ -491,7 +581,13 @@ export class BookWorld {
 
     if (this.motesPoints) {
       const posAttr = this.motesPoints.geometry.getAttribute('position');
+      const span = 36;
+      const halfSpan = span * 0.5;
       for (let i = 0; i < this.moteBaseY.length; i++) {
+        let relX = (this.moteBaseX[i] + time * 0.18 - focusX) % span;
+        if (relX < -halfSpan) relX += span;
+        if (relX > halfSpan) relX -= span;
+        posAttr.setX(i, focusX + relX);
         posAttr.setY(i, this.moteBaseY[i] + Math.sin(time * 0.8 + this.motePhases[i]) * 0.25);
       }
       posAttr.needsUpdate = true;

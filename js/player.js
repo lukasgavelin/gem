@@ -8,6 +8,8 @@ export class PaperclipPlayer {
     this.scene = scene;
     this.particles = [];
     this.speedLines = [];
+    this.particlePool = [];
+    this.speedLinePool = [];
 
     // Collision half-extents in world units
     this.halfW = 0.28;
@@ -102,6 +104,19 @@ export class PaperclipPlayer {
 
     this.scene.add(this.group);
 
+    // Translucent ghost mesh for best-run replay
+    this.ghostGroup = new THREE.Group();
+    const ghostMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.32,
+      wireframe: false,
+    });
+    const ghostWire = new THREE.Mesh(tubeGeo, ghostMat);
+    this.ghostGroup.add(ghostWire);
+    this.ghostGroup.visible = false;
+    this.scene.add(this.ghostGroup);
+
     this.fxGroup = new THREE.Group();
     this.scene.add(this.fxGroup);
     this.particleGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
@@ -125,21 +140,58 @@ export class PaperclipPlayer {
     this.spinAngle = 0;
     this.scaleX = 1;
     this.scaleY = 1;
-    this.speedLines = [];
+    while (this.speedLines.length > 0) {
+      const sl = this.speedLines.pop();
+      sl.mesh.visible = false;
+      this.speedLinePool.push({ mesh: sl.mesh, mat: sl.mat });
+    }
     this.speedLineTimer = 0;
     this.isWallSliding = false;
     this.wallSlideTimer = 0;
+  }
+
+  _acquireParticle(color, roughness = 0.6) {
+    if (this.particlePool.length > 0) {
+      const item = this.particlePool.pop();
+      item.mat.color.set(color);
+      item.mat.roughness = roughness;
+      item.mat.opacity = 1;
+      item.mesh.visible = true;
+      return item;
+    }
+    const mat = new THREE.MeshStandardMaterial({ color, roughness, transparent: true });
+    const mesh = new THREE.Mesh(this.particleGeo, mat);
+    this.fxGroup.add(mesh);
+    return { mesh, mat };
+  }
+
+  _acquireSpeedLine(isDashing) {
+    const hex = isDashing ? 0x2563eb : 0x182230;
+    if (this.speedLinePool.length > 0) {
+      const item = this.speedLinePool.pop();
+      item.mat.color.setHex(hex);
+      item.mat.opacity = 0.85;
+      item.mesh.visible = true;
+      return item;
+    }
+    const mat = new THREE.MeshBasicMaterial({
+      color: hex,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const mesh = new THREE.Mesh(this.lineGeo, mat);
+    this.fxGroup.add(mesh);
+    return { mesh, mat };
   }
 
   _spawnParticles(x, y, count, color = '#67e8f9', speed = 4.5) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const spd = (0.4 + Math.random() * 0.8) * speed;
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, transparent: true });
-      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      const { mesh, mat } = this._acquireParticle(color, 0.6);
       mesh.position.set(x, y, (Math.random() - 0.5) * 0.3);
       mesh.castShadow = true;
-      this.fxGroup.add(mesh);
+      mesh.scale.setScalar(1);
 
       this.particles.push({
         x,
@@ -152,6 +204,7 @@ export class PaperclipPlayer {
         rotSpeed: (Math.random() - 0.5) * 14,
         life: 0.35 + Math.random() * 0.25,
         maxLife: 0.55,
+        baseScale: 1,
         mesh,
         mat,
       });
@@ -164,11 +217,10 @@ export class PaperclipPlayer {
       const vx = -wallDir * (1.8 + Math.random() * 2.8);
       const vy = 1.0 + Math.random() * 2.8;
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: true });
-      const mesh = new THREE.Mesh(this.particleGeo, mat);
+      const { mesh, mat } = this._acquireParticle(color, 0.5);
       mesh.position.set(x, y + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2);
+      mesh.castShadow = false;
       mesh.scale.setScalar(0.65);
-      this.fxGroup.add(mesh);
 
       this.particles.push({
         x: mesh.position.x,
@@ -181,6 +233,7 @@ export class PaperclipPlayer {
         rotSpeed: (Math.random() - 0.5) * 18,
         life: 0.18 + Math.random() * 0.14,
         maxLife: 0.32,
+        baseScale: 0.65,
         mesh,
         mat,
       });
@@ -203,16 +256,10 @@ export class PaperclipPlayer {
       const y1 = this.y + py * side - uy * back;
       const maxLife = isDashing ? 0.18 : 0.13;
 
-      const mat = new THREE.MeshBasicMaterial({
-        color: isDashing ? 0x2563eb : 0x182230,
-        transparent: true,
-        opacity: 0.85,
-      });
-      const mesh = new THREE.Mesh(this.lineGeo, mat);
+      const { mesh, mat } = this._acquireSpeedLine(isDashing);
       mesh.position.set(x1 - (ux * len) / 2, y1 - (uy * len) / 2, (Math.random() - 0.5) * 0.25);
       mesh.scale.set(len, 1, 1);
       mesh.rotation.z = Math.atan2(uy, ux);
-      this.fxGroup.add(mesh);
 
       this.speedLines.push({
         life: maxLife,
@@ -228,8 +275,8 @@ export class PaperclipPlayer {
       const p = this.particles[i];
       p.life -= dt;
       if (p.life <= 0) {
-        this.fxGroup.remove(p.mesh);
-        p.mat.dispose();
+        p.mesh.visible = false;
+        this.particlePool.push({ mesh: p.mesh, mat: p.mat });
         this.particles.splice(i, 1);
         continue;
       }
@@ -241,7 +288,7 @@ export class PaperclipPlayer {
       const alpha = Math.max(0, p.life / p.maxLife);
       p.mesh.position.set(p.x, p.y, p.z);
       p.mesh.rotation.set(p.rot, p.rot * 0.7, p.rot);
-      p.mesh.scale.setScalar(0.4 + 0.6 * alpha);
+      p.mesh.scale.setScalar((p.baseScale || 1) * (0.4 + 0.6 * alpha));
       p.mat.opacity = alpha;
     }
 
@@ -249,8 +296,8 @@ export class PaperclipPlayer {
       const sl = this.speedLines[i];
       sl.life -= dt;
       if (sl.life <= 0) {
-        this.fxGroup.remove(sl.mesh);
-        sl.mat.dispose();
+        sl.mesh.visible = false;
+        this.speedLinePool.push({ mesh: sl.mesh, mat: sl.mat });
         this.speedLines.splice(i, 1);
       } else {
         sl.mat.opacity = Math.max(0, sl.life / sl.maxLife) * 0.85;
@@ -266,8 +313,21 @@ export class PaperclipPlayer {
       if (this.respawnTimer <= 0) {
         this.spawn(this.spawnPos);
       }
-      return { reachedGoal: false, starsCollectedNow: 0, died: false };
+      return {
+        reachedGoal: false,
+        starsCollectedNow: 0,
+        died: false,
+        bounced: false,
+        dashed: false,
+        checkpointActivated: false,
+        crumbleTriggered: false,
+      };
     }
+
+    let bounced = false;
+    let dashed = false;
+    let checkpointActivated = false;
+    let crumbleTriggered = false;
 
     const moveSpeed = 8.4;
     const groundAccel = 65;
@@ -319,6 +379,7 @@ export class PaperclipPlayer {
       this.spinAngle = Math.PI * 2 * -this.facing;
       this.scaleX = 1.35;
       this.scaleY = 0.72;
+      dashed = true;
       sound.playDash();
       this._spawnParticles(this.x, this.y, 10, '#67e8f9', 5.5);
     }
@@ -386,6 +447,25 @@ export class PaperclipPlayer {
       this.vy *= Math.pow(0.45, dt * 12);
     }
 
+    // Magnetic field assist & dash recharge (Kapitel 3)
+    if (world.magnets) {
+      for (const m of world.magnets) {
+        if (Math.hypot(this.x - m.x, this.y - m.y) < m.radius) {
+          if (!this.onGround && this.dashTimer <= 0) {
+            const dx = m.x - this.x;
+            const dy = m.y - 0.4 - this.y;
+            this.vx += dx * 4.5 * dt;
+            this.vy = Math.min(11, this.vy + (22 + Math.max(0, dy * 6)) * dt);
+          }
+          if (!this.canDash) {
+            this.canDash = true;
+            sound.playMagnet();
+            this._spawnParticles(this.x, this.y, 6, '#38bdf8', 3.5);
+          }
+        }
+      }
+    }
+
     // Carry player with moving platform before physics step
     if (this.onGround && this.groundPlatform) {
       this.x += this.groundPlatform.x - this.groundPlatform.prevX;
@@ -410,6 +490,7 @@ export class PaperclipPlayer {
 
     for (const p of world.platforms) {
       if (p.crumbleState === 'fallen') continue;
+      if (Math.abs(p.x - this.x) > p.w * 0.5 + 2.5) continue;
       if (this._overlaps(this.x, this.y, this.halfW, this.halfH, p.x, p.y, p.w / 2, p.h / 2)) {
         const cameFromLeft = prevX + this.halfW <= p.x - p.w / 2 + 0.08;
         const cameFromRight = prevX - this.halfW >= p.x + p.w / 2 - 0.08;
@@ -438,6 +519,7 @@ export class PaperclipPlayer {
 
     for (const p of world.platforms) {
       if (p.crumbleState === 'fallen') continue;
+      if (Math.abs(p.x - this.x) > p.w * 0.5 + 2.5) continue;
       if (this._overlaps(this.x, this.y, this.halfW, this.halfH, p.x, p.y, p.w / 2, p.h / 2)) {
         if (this.vy <= 0) {
           this.y = p.y + p.h / 2 + this.halfH;
@@ -448,6 +530,7 @@ export class PaperclipPlayer {
             p.bounceAnim = 1.0;
             this.scaleX = 0.68;
             this.scaleY = 1.45;
+            bounced = true;
             sound.playBounce();
             this._spawnParticles(this.x, this.y - this.halfH, 10, '#93c5fd', 5.0);
           } else {
@@ -463,6 +546,7 @@ export class PaperclipPlayer {
             if (p.crumble && p.crumbleState === 'solid') {
               p.crumbleState = 'shaking';
               p.crumbleTimer = 0.55;
+              crumbleTriggered = true;
             }
           }
         } else if (prevY + this.halfH <= p.y - p.h / 2 + 0.14) {
@@ -473,15 +557,32 @@ export class PaperclipPlayer {
     }
 
     for (const h of world.hazards) {
+      if (Math.abs(h.x - this.x) > h.w * 0.5 + 2.0) continue;
       if (this._overlaps(this.x, this.y, this.halfW * 0.85, this.halfH * 0.85, h.x, h.y, h.w / 2, h.h / 2)) {
         this._die();
-        return { reachedGoal: false, starsCollectedNow: 0, died: true };
+        return {
+          reachedGoal: false,
+          starsCollectedNow: 0,
+          died: true,
+          bounced,
+          dashed,
+          checkpointActivated,
+          crumbleTriggered,
+        };
       }
     }
 
     if (this.y < -7.2) {
       this._die();
-      return { reachedGoal: false, starsCollectedNow: 0, died: true };
+      return {
+        reachedGoal: false,
+        starsCollectedNow: 0,
+        died: true,
+        bounced,
+        dashed,
+        checkpointActivated,
+        crumbleTriggered,
+      };
     }
 
     let starsCollectedNow = 0;
@@ -497,6 +598,7 @@ export class PaperclipPlayer {
     for (const cp of world.checkpoints) {
       if (!cp.activated && Math.hypot(this.x - cp.x, this.y - cp.y) < 1.5) {
         cp.activated = true;
+        checkpointActivated = true;
         this.spawnPos = { x: cp.x, y: cp.y + 0.4 };
         sound.playCheckpoint();
         this._spawnParticles(cp.x, cp.y + 0.4, 10, '#38bdf8', 4.5);
@@ -527,7 +629,15 @@ export class PaperclipPlayer {
       this.blinkTimer = 2.2 + Math.random() * 2.5;
     }
 
-    return { reachedGoal, starsCollectedNow, died: false };
+    return {
+      reachedGoal,
+      starsCollectedNow,
+      died: false,
+      bounced,
+      dashed,
+      checkpointActivated,
+      crumbleTriggered,
+    };
   }
 
   _die() {
@@ -541,9 +651,28 @@ export class PaperclipPlayer {
     return Math.abs(ax - bx) < ahw + bhw && Math.abs(ay - by) < ahh + bhh;
   }
 
+  updateGhost(ghostPose, dimensionMix = 1) {
+    if (!this.ghostGroup) return;
+    if (!ghostPose) {
+      this.ghostGroup.visible = false;
+      return;
+    }
+    this.ghostGroup.visible = true;
+    this.ghostGroup.position.set(ghostPose.x, ghostPose.y, -0.04);
+    this.ghostGroup.rotation.y = (ghostPose.facing || 1) * 0.18 * dimensionMix;
+    this.ghostGroup.scale.set(1, 1, 0.15 + 0.85 * dimensionMix);
+  }
+
   syncVisuals(time = 0, dimensionMix = 1) {
-    this.group.visible = !this.dead;
-    if (this.dead) return;
+    this.group.visible = true;
+    if (this.dead) {
+      const t = Math.max(0, Math.min(1, 1 - this.respawnTimer / 0.45));
+      this.group.position.set(this.x, this.y + Math.sin(t * Math.PI) * 0.65, 0.2);
+      this.group.rotation.z += 0.35;
+      const s = Math.max(0.01, 1 - t);
+      this.group.scale.set(s * (dimensionMix < 0.35 ? this.facing : 1), s, s);
+      return;
+    }
 
     this.group.position.set(this.x, this.y, 0.02);
     const lean = -this.vx * 0.025;
@@ -562,7 +691,6 @@ export class PaperclipPlayer {
       const tex = getPlayer2DTexture(this.canDash, boilFrame);
       if (this.sprite2DMat.map !== tex) {
         this.sprite2DMat.map = tex;
-        this.sprite2DMat.needsUpdate = true;
       }
       return;
     }

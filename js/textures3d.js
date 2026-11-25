@@ -29,7 +29,10 @@ function toTexture(canvas, repeatX = 1, repeatY = 1) {
   return tex;
 }
 
+const chapterTexCache = new Map();
+
 export function createChapterPaperTexture(theme) {
+  if (chapterTexCache.has(theme)) return chapterTexCache.get(theme);
   const w = 512;
   const h = 512;
   const canvas = makeCanvas(w, h);
@@ -129,7 +132,9 @@ export function createChapterPaperTexture(theme) {
     }
   }
 
-  return toTexture(canvas, 6, 1.5);
+  const tex = toTexture(canvas, 6, 1.5);
+  chapterTexCache.set(theme, tex);
+  return tex;
 }
 
 const platformTexCache = new Map();
@@ -286,7 +291,11 @@ export function getPlatformTexture(style = 'default', boilFrame = 0, shaking = f
   return tex;
 }
 
+const signTexCache = new Map();
+
 export function createSignTexture(sign) {
+  const key = `${sign.x}:${sign.y}:${sign.text}:${sign.subtext || ''}`;
+  if (signTexCache.has(key)) return signTexCache.get(key);
   const w = 360;
   const h = 160;
   const canvas = makeCanvas(w, h);
@@ -324,7 +333,9 @@ export function createSignTexture(sign) {
     });
   }
 
-  return toTexture(canvas);
+  const tex = toTexture(canvas);
+  signTexCache.set(key, tex);
+  return tex;
 }
 
 const doodleTexCache = new Map();

@@ -259,6 +259,97 @@ kbd {
   box-shadow: 1px 1px 0 var(--ink-dark);
 }
 
+.start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.resume-btn {
+  background: #0f766e;
+}
+
+.chapter-select {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.chapter-select-label {
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-bottom: 7px;
+}
+
+.chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.chapter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: var(--paper-tint);
+  border: 2px solid var(--ink-dark);
+  border-radius: 7px 9px 8px 6px;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.chapter-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink-dark);
+}
+
+.chapter-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.ch-stars {
+  font-size: 12px;
+  color: #b45309;
+  white-space: nowrap;
+}
+
+.chapter-banner {
+  position: absolute;
+  top: max(68px, calc(env(safe-area-inset-top) + 56px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper-ice);
+  border: 2.5px solid var(--ink-dark);
+  border-radius: 10px 8px 11px 9px;
+  padding: 8px 20px;
+  font-family: 'Fredoka', 'Patrick Hand', cursive, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  box-shadow: 4px 4px 0 var(--ink-dark);
+  pointer-events: none;
+  z-index: 16;
+  white-space: nowrap;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.chapter-banner.fade-out {
+  opacity: 0;
+  transform: translate(-50%, -8px);
+}
+
 .pause-actions {
   display: flex;
   flex-direction: column;
@@ -350,6 +441,34 @@ kbd {
   pointer-events: auto;
 }
 
+.touch-dpad {
+  position: relative;
+}
+
+.dpad-up-hint {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-dark);
+  background: rgba(254, 243, 199, 0.85);
+  border: 1.5px solid var(--ink-dark);
+  border-radius: 999px;
+  padding: 0 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.touch-dpad.up-active .dpad-up-hint {
+  background: var(--accent-blue);
+  color: #fff;
+  opacity: 1;
+}
+
 .touch-btn {
   width: 64px;
   height: 64px;
@@ -434,6 +553,18 @@ kbd {
   }
   .pause-actions {
     gap: 7px;
+  }
+  .chapter-select {
+    margin-top: 10px;
+  }
+  .chapter-btn {
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+  .chapter-banner {
+    top: max(46px, calc(env(safe-area-inset-top) + 40px));
+    font-size: 14px;
+    padding: 5px 14px;
   }
   .cache-row {
     margin-top: 8px;
